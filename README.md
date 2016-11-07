@@ -1,6 +1,6 @@
 # Tattle wx
 
-** This is a work in progress and may not be viable for serious usage yet. **
+**This is a work in progress and may not be viable for serious usage yet.**
 
 Tattle is a native utlity for purposes of error reporting, feedback and data collection.  It is meant to be invoked by another application, and compiles a report consisting of string fields, attached files, and user-entered data, and uploads it to an HTTP server using the POST method.
 
