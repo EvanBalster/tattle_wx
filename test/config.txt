@@ -1,0 +1,12 @@
+-u "http://example.com/report.php"
+-pt "Error Report"
+-pi "imitone crashed!  Tell us what happened and we'll investigate."
+-ft log:log.txt
+-fb bin:log.txt
+-pm "user_desc:Use this space to tell us what happened:"
+-pf "user_email:Your E-mail:"
+-ph "user_email:you@example.com (optional)"
+-pf "user_sign:Your Birthsign:"
+-ph "user_sign:Sisyphus"
+-pf "user_fear:Your Worst Fear:"
+-ph "user_fear:EG. spiders, dying alone"
