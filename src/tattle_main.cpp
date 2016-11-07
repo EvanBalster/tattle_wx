@@ -65,20 +65,20 @@ namespace tattle
 		
 		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more options, 1/line.")
 
-		CMD_OPTION_STRINGS("as", "string",        "<parameter>:<value>  Argument string.")
-		CMD_OPTION_STRINGS("ft", "file",          "<parameter>:<fname>  Argument text file.")
-		CMD_OPTION_STRINGS("fb", "file-binary",   "<parameter>:<fname>  Argument file, binary.")
+		CMD_OPTION_STRINGS("a",  "arg",           "<parameter>=<value>  Argument string.")
+		CMD_OPTION_STRINGS("ft", "file",          "<parameter>=<fname>  Argument text file.")
+		CMD_OPTION_STRINGS("fb", "file-binary",   "<parameter>=<fname>  Argument file, binary.")
 
 		CMD_OPTION_STRING ("pt", "title",         "<title>              Title of the prompt window.")
 		CMD_OPTION_STRING ("pi", "message",       "<message>            A header message summarizing the prompt.")
-		CMD_OPTION_STRINGS("pf", "field",         "<parameter>:<label>  Single-line field for a user argument.")
-		CMD_OPTION_STRINGS("pm", "field-box",     "<parameter>:<label>  Multi-line field.")
-		CMD_OPTION_STRINGS("pd", "field-default", "<parameter>:<hint>   Hint message for -pf field.")
-		CMD_OPTION_STRINGS("ph", "field-hint",    "<parameter>:<hint>   Default value for a field.")
+		CMD_OPTION_STRINGS("pf", "field",         "<parameter>=<label>  Single-line field for a user argument.")
+		CMD_OPTION_STRINGS("pm", "field-multi",   "<parameter>=<label>  Multi-line field.")
+		CMD_OPTION_STRINGS("pd", "field-default", "<parameter>=<value>  Hint message for -pf field.")
+		CMD_OPTION_STRINGS("ph", "field-hint",    "<parameter>=<hint>   Default value for a field.")
 
 		//CMD_OPTION_STRINGS("ts", "tech-string",   "<label>:<value>      Technical info string.")
 		//CMD_OPTION_STRINGS("tf", "tech-file",     "<label>:<fname>      Technical info as a linked file.")
-		CMD_OPTION_STRINGS("td", "tech-dir",      "<label>:<path>       Technical info as a linked folder.")
+		CMD_OPTION_STRINGS("cd", "content-dir",   "<label>=<path>       Technical info as a linked folder.")
 
 		{wxCMD_LINE_NONE}
 	};
@@ -215,7 +215,7 @@ namespace tattle
 
 		static bool ParsePair(const wxString &str, wxString &first, wxString &second)
 		{
-			wxString::size_type p = str.find_first_of(':');
+			wxString::size_type p = str.find_first_of('=');
 			if (p == wxString::npos || p == 0 || p == str.length()-1) return false;
 
 			first = str.substr(0, p);
