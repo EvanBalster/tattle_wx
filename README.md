@@ -23,7 +23,7 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-h`  | `--help`         | _none_            | Displays help on command-line parameters. |
 | `-u`  | `--url`          | `<url>`           | **Required**.  Specify the desination URL. |
 | `-s`  | `--silent`       | _none_            | Post a report without showing any UI.  No user fields will be filled. |
-| `-c`  | `--config-file`  | `<fname>`         | Specify a configuration file containing more command-line arguments. |
+| `-c`  | `--config-file`  | `<fname>`         | Specify a configuration file containing more of these options. |
 | `-a`  | `--arg`          | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
 | `-ft` | `--file`         | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
 | `-fb` | `--file-binary`  | `<param>=<fname>` | Upload a binary file.  (Linked rather than printed in the UI) |
@@ -32,7 +32,7 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-pf` | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with an instructive label. |
 | `-pm` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
 | `-pd` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
-| `-ph` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for a parameter.  Will appear in empty `-pf` fields. |
+| `-ph` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
 | `-cd` | `--content-dir`  | `<label>=<path>`  | Supply a folder which will be linked in the "view contents" dialog. |
 
 
