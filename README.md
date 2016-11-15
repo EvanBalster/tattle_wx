@@ -27,8 +27,8 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-a`  | `--arg`          | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
 | `-ft` | `--file`         | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
 | `-fb` | `--file-binary`  | `<param>=<fname>` | Upload a binary file.  (Linked rather than printed in the UI) |
-| `-pi` | `--title`        | `<text>`          | Supply a title for the UI window. |
-| `-pm` | `--message`      | `<text>`          | Supply a message which will appear as the header of the UI. |
+| `-pt` | `--title`        | `<text>`          | Supply a title for the prompt window. |
+| `-pi` | `--message`      | `<text>`          | Supply a message which will appear as the header of the prompt. |
 | `-pf` | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with an instructive label. |
 | `-pm` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
 | `-pd` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
@@ -41,6 +41,13 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 **tattle_wx** is based on the wxWidgets framework, depending on its Core, Base and Net libraries.  This enables portability to Windows, Mac OS X and Linux (and potentially others).  It adheres to the C++98 standard.
 
 The author is interested in alternative implementations of this utility, in particular native versions which minimize its filesize and implementations which might make it useful on mobile.
+
+
+## Building Notes
+
+Under OSX/Clang with the latest wxWidgets it may be necessary to define FORCE_TR1_TYPE_TRAITS depending on the runtime libraries and flags used to compile wxWidgets and the applications itself.
+
+When development is complete I plan to include precompiled binaries here.
 
 
 ## Development Notes
