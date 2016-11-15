@@ -63,6 +63,7 @@ Things that still need doing:
 
 Things I may investigate in the future:
 
+* Remembered fields (such as E-mail address)
 * File compression.
 * A way to save compiled reports to disk.
 * A preemptive warning when not connected to the internet.
