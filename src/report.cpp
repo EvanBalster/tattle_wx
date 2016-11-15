@@ -59,7 +59,7 @@ void Report::encodePost(wxHTTP &http) const
 		if (i->fname.length())
 		{
 			// Filename
-			DumpString(postBuffer, " filename=\"");
+			DumpString(postBuffer, "; filename=\"");
 			DumpString(postBuffer, i->fname);
 			DumpString(postBuffer, "\"");
 		}

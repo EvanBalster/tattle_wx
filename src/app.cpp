@@ -147,8 +147,7 @@ public:
 				if (report.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
 
 				Report::Parameter param;
-				if (c1 == 's') param.type = PARAM_STRING;
-				else err = CMD_ERR_UNKNOWN;
+				param.type = PARAM_STRING;
 				param.name = name;
 				param.value = value;
 				report.params.push_back(param);
