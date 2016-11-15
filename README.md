@@ -52,4 +52,18 @@ When development is complete I plan to include precompiled binaries here.
 
 ## Development Notes
 
-Tattle is inspired by the Unity crash reporter and Google Breakpad.  I believe it can be used as an uploader in a Breakpad-enabled app.
+Tattle is inspired by the Unity crash reporter and Google Breakpad.  As far as I know it can be used as an uploader in a Breakpad-enabled app (but I haven't tried this yet)
+
+Things that still need doing:
+
+* A dialog allowing the user to review report contents:  Fields, files and the `-cd` folder.
+* A progress report dialog for the upload.
+* Clearer reporting of upload errors.
+* Verify full unicode compatibility.
+
+Things I may investigate in the future:
+
+* File compression.
+* A way to save compiled reports to disk.
+* A preemptive warning when not connected to the internet.
+* Possibly some built in "auto" parameters such as a system description.
