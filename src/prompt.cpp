@@ -90,6 +90,13 @@ void Prompt::UpdateReportFromFields()
 
 static const unsigned MARGIN = 5;
 
+static void ApplyMarkup(wxControl *control, const wxString &markup)
+{
+	wxString processed = markup;
+	processed.Replace(_("<br>"), _("\n"), true);
+	control->SetLabelMarkup(processed);
+}
+
 // Dialog
 Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	: wxDialog(parent, id, _report.promptTitle,
@@ -105,10 +112,12 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 
 	if (report.promptMessage.length())
 	{
-		sizerTop->Add(
-			new wxStaticText(this, -1, report.promptMessage,
-				wxDefaultPosition, wxDefaultSize, wxCENTER),
-			0, wxALIGN_LEFT | wxALL, MARGIN);
+		wxStaticText *messageText = new wxStaticText(this, -1, report.promptMessage,
+			wxDefaultPosition, wxDefaultSize, wxCENTER);
+		
+		ApplyMarkup(messageText, report.promptMessage);
+		
+		sizerTop->Add(messageText, 0, wxALIGN_LEFT | wxALL, MARGIN);
 
 		// Horizontal rule
 		sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
@@ -122,6 +131,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	case PARAM_FIELD:
 		{
 			wxStaticText *label = new wxStaticText(this, -1, i->label, wxDefaultPosition, wxDefaultSize, wxLEFT);
+			
+			ApplyMarkup(label, i->label);
 
 			wxTextCtrl *field = new wxTextCtrl(this, -1, i->value,
 				wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, i->name);
@@ -167,7 +178,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		wxBoxSizer *actionRow = new wxBoxSizer(wxHORIZONTAL);
 
 		wxButton
-			*butSubmit = new wxButton(this, wxID_OK, _("Send Error Report")),
+			*butSubmit = new wxButton(this, wxID_OK, _("Send Report")),
 			*butCancel = new wxButton(this, wxID_CANCEL, _("Don't Send"));
 			//*butDetails = new wxButton(this, wxID_VIEW_DETAILS, _("View Details..."));
 

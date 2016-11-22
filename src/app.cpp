@@ -43,6 +43,10 @@ namespace tattle
 		CMD_OPTION_STRINGS("a",  "arg",           "<parameter>=<value>  Argument string.")
 		CMD_OPTION_STRINGS("ft", "file",          "<parameter>=<fname>  Argument text file.")
 		CMD_OPTION_STRINGS("fb", "file-binary",   "<parameter>=<fname>  Argument file, binary.")
+		
+		CMD_OPTION_STRINGS("tb", "trunc-begin",   "<param>=<N>          Attach first N bytes of file.")
+		CMD_OPTION_STRINGS("te", "trunc-end",     "<param>=<N>          Attach last N bytes of file.")
+		CMD_OPTION_STRINGS("tn", "trunc-note",    "<param>=<text>       Line of text marking truncation.")
 
 		CMD_OPTION_STRING ("pt", "title",         "<title>              Title of the prompt window.")
 		CMD_OPTION_STRING ("pi", "message",       "<message>            A header message summarizing the prompt.")
@@ -71,7 +75,7 @@ public:
 	static bool ParsePair(const wxString &str, wxString &first, wxString &second)
 	{
 		wxString::size_type p = str.find_first_of('=');
-		if (p == wxString::npos || p == 0 || p == str.length()-1) return false;
+		if (p == wxString::npos || p == 0) return false;
 
 		first = str.substr(0, p);
 		second = str.substr(p + 1);
@@ -273,7 +277,7 @@ public:
 			break;
 		case CMD_ERR_BAD_PAIR:
 			cout << "Malformed pair: `-" << argName << " " << arg.GetStrVal()
-				<< "' -- should be \"<first_part>:<second_part>\" (without pointy brackets)" << endl;
+				<< "' -- should be \"<first_part>=<second_part>\" (without pointy brackets)" << endl;
 			//success = false;
 			break;
 		case CMD_ERR_PARAM_REDECLARED:

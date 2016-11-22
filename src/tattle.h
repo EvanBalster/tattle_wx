@@ -65,7 +65,7 @@ namespace tattle
         
         struct Parameter
         {
-            Parameter() : type(PARAM_NONE) {}
+            Parameter() : type(PARAM_NONE), limitFirst(0), limitLast(0) {}
             
             PARAM_TYPE  type;
             wxString    name;
@@ -75,13 +75,17 @@ namespace tattle
             
             // String value or file content
             wxString    value;
+			
+			// Fields for user prompts only
+            wxString    label, hint;
+			
+			// File truncation parameters
+			unsigned    limitFirst, limitLast;
+			wxString    limitMark;
             
             // MIME content type and encoding information, if applicable.
             //   If non-empty, will be added to multipart POST request.
             std::string contentInfo;
-            
-            // Fields for user prompts only
-            wxString    label, hint;
         };
         
         typedef std::list<Parameter> Parameters;
