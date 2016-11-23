@@ -34,6 +34,26 @@ void Prompt::OnDetails(wxCommandEvent & event)
 	wxMessageBox(_("User requested details."));
 }
 
+static wxString GrabReplyTag(const wxString &reply, const wxString &tagName)
+{
+	wxString
+		tagOpen  = wxT("<") +tagName+wxT(">"),
+		tagClose = wxT("</")+tagName+wxT(">");
+	
+	int
+		ptOpen = reply.Find(tagOpen),
+		ptClose = reply.Find(tagClose);
+	
+	if (ptOpen != wxNOT_FOUND && ptClose != wxNOT_FOUND)
+	{
+		ptOpen += tagOpen.Length();
+		if (ptOpen <= ptClose)
+			return reply.Mid(ptOpen, ptClose-ptOpen);
+	}
+	
+	return wxString();
+}
+
 void Prompt::OnSubmit(wxCommandEvent & event)
 {
 	UpdateReportFromFields();
@@ -43,25 +63,57 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 	
 	post.SetTimeout(10);
 	
-	//wxString 
+	//wxString
 	
-	if (!post.Connect(wxT("imitone.com")))
+	if (!post.Connect(report.uploadURL.base))
 	{
-		wxMessageBox(_("Failed to reach the website for the error report.  Are you connected to the internet?"));
+		wxMessageBox(_("Failed to reach the website for the report.\nAre you connected to the internet?"));
 		post.Close();
 		return;
 	}
 	
-	wxInputStream *httpStream = post.GetInputStream(_T("/mothership/error_test.php"));
+	wxInputStream *httpStream = post.GetInputStream(report.uploadURL.path);
 	
 	if (post.GetError() == wxPROTO_NOERR)
 	{
-		wxString reply;
-		wxStringOutputStream out_stream(&reply);
+		wxString replyRaw;
+		wxStringOutputStream out_stream(&replyRaw);
 		httpStream->Read(out_stream);
-	 
-		wxMessageBox(wxT("WEBSITE REPLY:\r\n") + reply);
-		// wxLogVerbose( wxString(_T(" returned document length: ")) << res.Length() );
+		
+		wxString
+			replyTitle = GrabReplyTag(replyRaw, wxT("tattle-title")),
+			replyMsg   = GrabReplyTag(replyRaw, wxT("tattle-message")),
+			replyLink  = GrabReplyTag(replyRaw, wxT("tattle-link"));
+		
+		replyLink = wxT("http://") + report.uploadURL.base + "/" + replyLink;
+		
+		if (replyLink.Length() > 0)
+		{
+			if (!replyTitle.Length()) replyTitle = wxT("Suggested Link");
+			if (!replyMsg  .Length()) replyMsg = wxT("The server suggests a solution.");
+			
+			replyMsg += wxT("\n\n") + replyLink +
+				wxT("\nOpen this link in your browser?");
+			
+			int result = wxMessageBox(replyMsg, replyTitle, wxYES_NO|wxCENTER);
+			
+			if (result == wxYES)
+			{
+				wxLaunchDefaultBrowser(replyLink);
+			}
+		}
+		else if (replyMsg.Length() > 0)
+		{
+			if (!replyTitle.Length()) replyTitle = "Report Sent!";
+			
+			wxMessageBox(replyMsg, replyTitle);
+		}
+		else
+		{
+			if (!replyTitle.Length()) replyTitle = "Report Sent";
+			
+			wxMessageBox(replyMsg, wxT("WEBSITE RESPONSE:\n\n") + replyRaw);
+		}
 	}
 	else
 	{

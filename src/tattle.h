@@ -26,6 +26,7 @@
 #endif
 
 #include <wx/string.h>
+#include <wx/file.h>
 #include <wx/dialog.h>
 #include <wx/textctrl.h>
 #include <wx/msgdlg.h>
@@ -65,7 +66,7 @@ namespace tattle
         
         struct Parameter
         {
-            Parameter() : type(PARAM_NONE), limitFirst(0), limitLast(0) {}
+            Parameter() : type(PARAM_NONE), trimBegin(0), trimEnd(0) {}
             
             PARAM_TYPE  type;
             wxString    name;
@@ -80,8 +81,8 @@ namespace tattle
             wxString    label, hint;
 			
 			// File truncation parameters
-			unsigned    limitFirst, limitLast;
-			wxString    limitMark;
+			unsigned    trimBegin, trimEnd;
+			wxString    trimMark;
             
             // MIME content type and encoding information, if applicable.
             //   If non-empty, will be added to multipart POST request.
@@ -109,8 +110,14 @@ namespace tattle
         void encodePost(wxHTTP &request) const;
         
     public: // members
-        
-        wxString uploadUrl;
+		
+		struct UploadURL
+		{
+			wxString base, path;
+			
+			bool set(wxString fullURL);
+		}
+			uploadURL;
         
         wxString promptTitle;
         wxString promptMessage;

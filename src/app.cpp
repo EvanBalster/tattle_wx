@@ -91,6 +91,7 @@ public:
 		CMD_ERR_PARAM_MISSING,
 		CMD_ERR_PARAM_NOT_APPLICABLE,
 		CMD_ERR_FAILED_TO_OPEN_FILE,
+		CMD_ERR_BAD_URL,
 	};
 
 	virtual void OnInitCmdLine(wxCmdLineParser& parser) wxOVERRIDE
@@ -113,7 +114,10 @@ public:
 		{
 			if (c0 == 'u')
 			{
-				report.uploadUrl = arg.GetStrVal();
+				if (!report.uploadURL.set(arg.GetStrVal()))
+				{
+					err = CMD_ERR_BAD_URL;
+				}
 			}
 			else if (c0 == 's')
 			{
@@ -280,6 +284,11 @@ public:
 				<< "' -- should be \"<first_part>=<second_part>\" (without pointy brackets)" << endl;
 			//success = false;
 			break;
+		case CMD_ERR_BAD_URL:
+			cout << "Malformed URL: `-" << argName << " " << arg.GetStrVal()
+				<< "' -- should be \"http://<domain>[/path...]\".  No HTTPS." << endl;
+			success = false;
+			break;
 		case CMD_ERR_PARAM_REDECLARED:
 		case CMD_ERR_PARAM_MISSING:
 		case CMD_ERR_PARAM_NOT_APPLICABLE:
@@ -342,7 +351,7 @@ bool TattleApp::OnInit()
 		
 	bool badCmdLine = false;
 		
-	if (!report.uploadUrl.length())
+	if (report.uploadURL.base.length() == 0)
 	{
 		cout << "An upload URL must be specified with the -u or --url option." << endl;
 		badCmdLine = true;
@@ -362,7 +371,7 @@ bool TattleApp::OnInit()
 
 	// Debug
 	cout << "Successful init." << endl
-		<< "  URL: " << report.uploadUrl << endl
+		<< "  URL: http://" << report.uploadURL.base << report.uploadURL.path << endl
 		<< "  Parameters:" << endl;
 	for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
 		cout << "    - " << i->name << "= `" << i->value << "' Type#" << i->type << endl;

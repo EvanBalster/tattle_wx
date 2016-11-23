@@ -16,6 +16,50 @@
 using namespace tattle;
 
 
+bool Report::UploadURL::set(wxString url)
+{
+	// Must be ASCII
+	if (!url.IsAscii())
+	{
+		std::cout << "Error: Upload URL is not ASCII." << std::endl;
+		return false;
+	}
+	
+	// Starts with http://
+	{
+		wxString sHTTP = wxT("http://");
+		int pHTTP = url.Find(sHTTP);
+		if (pHTTP != 0)
+		{
+			std::cout << "Error: Upload URL does not begin with 'http://'" << std::endl;
+			return false;
+		}
+		
+		pHTTP += sHTTP.length();
+		url = url.Mid(pHTTP);
+	}
+	
+	// May contain a slash after http
+	int pSlash = url.Find(wxT("/"));
+	if (pSlash == wxNOT_FOUND)
+	{
+		base = url;
+		path = "";
+	}
+	else
+	{
+		base = url.Mid(0, pSlash);
+		path = url.Mid(pSlash);
+	}
+	
+	// Base must contain a dot
+	if (base.Find(wxT(".")) == wxNOT_FOUND)
+	{
+		std::cout << "Warning: Upload URL has no dots in its name." << std::endl;
+	}
+	return true;
+}
+
 
 static void DumpString(wxMemoryBuffer &dest, const char *src)
 {
@@ -84,6 +128,7 @@ void Report::encodePost(wxHTTP &http) const
 		case PARAM_FILE_TEXT:
 			DumpString(postBuffer, i->value);
 			break;
+		
 		case PARAM_FILE_BIN:
 			{
 				// Open the file
@@ -93,6 +138,12 @@ void Report::encodePost(wxHTTP &http) const
 				{
 					// Read the file into the post buffer directly
 					wxFileOffset fileLength = file.Length();
+					
+					if ((i->trimBegin || i->trimEnd) && (i->trimBegin+i->trimEnd > fileLength))
+					{
+						//TODO alternate read
+					}
+					
 					size_t contentConsumed = file.Read(postBuffer.GetAppendBuf(fileLength), fileLength);
 					postBuffer.UngetAppendBuf(contentConsumed);
 				}
