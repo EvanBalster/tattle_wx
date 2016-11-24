@@ -85,10 +85,11 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 			replyMsg   = GrabReplyTag(replyRaw, wxT("tattle-message")),
 			replyLink  = GrabReplyTag(replyRaw, wxT("tattle-link"));
 		
-		replyLink = wxT("http://") + report.uploadURL.base + "/" + replyLink;
 		
 		if (replyLink.Length() > 0)
 		{
+			replyLink = wxT("http://") + report.uploadURL.base + "/" + replyLink;
+
 			if (!replyTitle.Length()) replyTitle = wxT("Suggested Link");
 			if (!replyMsg  .Length()) replyMsg = wxT("The server suggests a solution.");
 			
@@ -117,7 +118,8 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 	}
 	else
 	{
-		wxMessageBox(wxString::Format(wxT("Failed to upload the report: error %i\r\n%s"),post.GetError()));
+		int err_no = post.GetError();
+		wxMessageBox(wxString::Format(wxT("Failed to upload the report: error %i"),err_no));
 	}
 	 
 	wxDELETE(httpStream);
