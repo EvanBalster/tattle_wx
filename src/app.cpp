@@ -57,7 +57,7 @@ namespace tattle
 
 		//CMD_OPTION_STRINGS("ts", "tech-string",   "<label>:<value>      Technical info string.")
 		//CMD_OPTION_STRINGS("tf", "tech-file",     "<label>:<fname>      Technical info as a linked file.")
-		CMD_OPTION_STRINGS("cd", "content-dir",   "<label>=<path>       Technical info as a linked folder.")
+		CMD_OPTION_STRINGS("vd", "info-dir",      "<label>=<path>       Folder linked in 'view details' dialog.")
 
 		{wxCMD_LINE_NONE}
 	};
@@ -92,6 +92,7 @@ public:
 		CMD_ERR_PARAM_NOT_APPLICABLE,
 		CMD_ERR_FAILED_TO_OPEN_FILE,
 		CMD_ERR_BAD_URL,
+		CMD_ERR_BAD_SIZE,
 	};
 
 	virtual void OnInitCmdLine(wxCmdLineParser& parser) wxOVERRIDE
@@ -182,9 +183,6 @@ public:
 				{
 					if (param.type == PARAM_FILE_TEXT)
 					{
-						// Read into value string
-						file.ReadAll(&param.value);
-						
 						// Content info
 						param.contentInfo = "Content-Type: text/plain";
 					}
@@ -199,6 +197,34 @@ public:
 				else err = CMD_ERR_FAILED_TO_OPEN_FILE;
 				
 				report.params.push_back(param);
+			}
+			else if (c0 == 't')
+			{
+				// Argument string
+				wxString name, value;
+				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
+				
+				//Parameter must exist and must be a file
+				Report::Parameter *param = report.findParam(name);
+				if (param == NULL)
+					{ err = CMD_ERR_PARAM_MISSING; break; }
+				if (param->type != PARAM_FILE_BIN && param->type != PARAM_FILE_TEXT)
+					{ err = CMD_ERR_PARAM_NOT_APPLICABLE; break; }
+				
+				if (c1 == 'b' || c1 == 'e')
+				{
+					long bytes = 0;
+					if (value.ToLong(&bytes) && bytes >= 0)
+					{
+						((c1 == 'b') ? param->trimBegin : param->trimEnd) = unsigned(bytes);
+					}
+					else err = CMD_ERR_BAD_SIZE;
+				}
+				else if (c1 == 'n')
+				{
+					param->trimNote = value;
+				}
+				else err = CMD_ERR_UNKNOWN;
 			}
 			else if (c0 == 'p')
 			{
@@ -250,7 +276,7 @@ public:
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
-			else if (c0 == 't')
+			else if (c0 == 'v')
 			{
 				if (c1 == 'd')
 				{
@@ -287,6 +313,11 @@ public:
 		case CMD_ERR_BAD_URL:
 			cout << "Malformed URL: `-" << argName << " " << arg.GetStrVal()
 				<< "' -- should be \"http://<domain>[/path...]\".  No HTTPS." << endl;
+			success = false;
+			break;
+		case CMD_ERR_BAD_SIZE:
+			cout << "Malformed Size: `-" << argName << " " << arg.GetStrVal()
+				<< "' -- should be an unsigned integer." << endl;
 			success = false;
 			break;
 		case CMD_ERR_PARAM_REDECLARED:
@@ -368,6 +399,8 @@ bool TattleApp::OnInit()
 		cout << "  Execute tattle --help for more information." << endl;
 		return false;
 	}
+	
+	report.readFiles();
 
 	// Debug
 	cout << "Successful init." << endl

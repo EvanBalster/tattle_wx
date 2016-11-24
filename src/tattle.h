@@ -74,15 +74,18 @@ namespace tattle
             // Filename if applicable
             wxString    fname;
             
-            // String value or file content
+            // String value for arguments & prompts
             wxString    value;
+			
+			// File contents
+			wxMemoryBuffer fileContents;
 			
 			// Fields for user prompts only
             wxString    label, hint;
 			
 			// File truncation parameters
 			unsigned    trimBegin, trimEnd;
-			wxString    trimMark;
+			wxString    trimNote;
             
             // MIME content type and encoding information, if applicable.
             //   If non-empty, will be added to multipart POST request.
@@ -105,6 +108,9 @@ namespace tattle
             for (Parameters::iterator i = params.begin(); i != params.end(); ++i) if (i->name == name) return &*i;
             return NULL;
         }
+		
+		// Read file contents into fileContents buffers
+		void readFiles();
         
         // Encode HTTP post request
         void encodePost(wxHTTP &request) const;

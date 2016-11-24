@@ -76,6 +76,63 @@ static void DumpString(wxMemoryBuffer &dest, const wxString &src)
 	wxScopedCharBuffer utf8 = src.ToUTF8();
 	dest.AppendData(utf8.data(), utf8.length());
 }
+
+static void DumpBuffer(wxMemoryBuffer &dest, const wxMemoryBuffer &src)
+{
+	dest.AppendData(src.GetData(), src.GetDataLen());
+}
+
+void Report::readFiles()
+{
+	for (Parameters::iterator i = params.begin(); i != params.end(); ++i)
+	{
+		if (i->type == PARAM_FILE_TEXT || i->type == PARAM_FILE_BIN)
+		{
+			// Open the file
+			wxFile file(i->fname);
+			
+			if (!file.IsOpened())
+			{
+				DumpString(i->fileContents, wxT("[File not found]"));
+				continue;
+			}
+			
+			// Clear any pre-existing contents
+			i->fileContents.Clear();
+			
+			// Read the file into the post buffer directly
+			wxFileOffset fileLength = file.Length();
+			
+			if ((i->trimBegin || i->trimEnd) && (i->trimBegin+i->trimEnd < fileLength))
+			{
+				// Trim the file
+				if (i->trimBegin)
+				{
+					size_t consumed = file.Read(i->fileContents.GetAppendBuf(i->trimBegin), i->trimBegin);
+					i->fileContents.UngetAppendBuf(consumed);
+					
+					DumpString(i->fileContents, " ...\r\n\r\n");
+				}
+				if (i->trimNote.Length())
+				{
+					DumpString(i->fileContents, i->trimNote);
+				}
+				if (i->trimEnd)
+				{
+					DumpString(i->fileContents, "\r\n\r\n... ");
+					file.Seek(-wxFileOffset(i->trimEnd), wxFromEnd);
+					size_t consumed = file.Read(i->fileContents.GetAppendBuf(i->trimEnd), i->trimEnd);
+					i->fileContents.UngetAppendBuf(consumed);
+				}
+			}
+			else
+			{
+				size_t consumed = file.Read(i->fileContents.GetAppendBuf(fileLength), fileLength);
+				i->fileContents.UngetAppendBuf(consumed);
+			}
+		}
+	}
+}
 	
 void Report::encodePost(wxHTTP &http) const
 {
@@ -125,33 +182,12 @@ void Report::encodePost(wxHTTP &http) const
 		case PARAM_STRING:
 		case PARAM_FIELD:
 		case PARAM_FIELD_MULTI:
-		case PARAM_FILE_TEXT:
 			DumpString(postBuffer, i->value);
 			break;
 		
+		case PARAM_FILE_TEXT:
 		case PARAM_FILE_BIN:
-			{
-				// Open the file
-				wxFile file(i->fname);
-				
-				if (file.IsOpened())
-				{
-					// Read the file into the post buffer directly
-					wxFileOffset fileLength = file.Length();
-					
-					if ((i->trimBegin || i->trimEnd) && (i->trimBegin+i->trimEnd > fileLength))
-					{
-						//TODO alternate read
-					}
-					
-					size_t contentConsumed = file.Read(postBuffer.GetAppendBuf(fileLength), fileLength);
-					postBuffer.UngetAppendBuf(contentConsumed);
-				}
-				else
-				{
-					DumpString(postBuffer, "[file not found]");
-				}
-			}
+			DumpBuffer(postBuffer, i->fileContents);
 			break;
 		case PARAM_NONE:
 		default:
