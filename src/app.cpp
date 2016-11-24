@@ -50,10 +50,15 @@ namespace tattle
 
 		CMD_OPTION_STRING ("pt", "title",         "<title>              Title of the prompt window.")
 		CMD_OPTION_STRING ("pi", "message",       "<message>            A header message summarizing the prompt.")
+		CMD_OPTION_STRING ("ps", "text-send",     "<text>               Text of the 'send' button.")
+		CMD_OPTION_STRING ("pc", "text-cancel",   "<text>               Text of the 'cancel' button.")
+		
+		
 		CMD_OPTION_STRINGS("pf", "field",         "<parameter>=<label>  Single-line field for a user argument.")
 		CMD_OPTION_STRINGS("pm", "field-multi",   "<parameter>=<label>  Multi-line field.")
 		CMD_OPTION_STRINGS("pd", "field-default", "<parameter>=<value>  Hint message for -pf field.")
 		CMD_OPTION_STRINGS("ph", "field-hint",    "<parameter>=<hint>   Default value for a field.")
+		
 
 		//CMD_OPTION_STRINGS("ts", "tech-string",   "<label>:<value>      Technical info string.")
 		//CMD_OPTION_STRINGS("tf", "tech-file",     "<label>:<fname>      Technical info as a linked file.")
@@ -236,6 +241,14 @@ public:
 				else if (c1 == 'i')
 				{
 					report.promptMessage = arg.GetStrVal();
+				}
+				else if (c1 == 's')
+				{
+					report.labelSend = arg.GetStrVal();
+				}
+				else if (c1 == 'c')
+				{
+					report.labelCancel = arg.GetStrVal();
 				}
 				else if (c1 == 'f' || c1 == 'm')
 				{

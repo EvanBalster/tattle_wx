@@ -230,8 +230,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		wxBoxSizer *actionRow = new wxBoxSizer(wxHORIZONTAL);
 
 		wxButton
-			*butSubmit = new wxButton(this, wxID_OK, _("Send Report")),
-			*butCancel = new wxButton(this, wxID_CANCEL, _("Don't Send"));
+			*butSubmit = new wxButton(this, wxID_OK, _(report.labelSend)),
+			*butCancel = new wxButton(this, wxID_CANCEL, _(report.labelCancel));
 			//*butDetails = new wxButton(this, wxID_VIEW_DETAILS, _("View Details..."));
 
 		actionRow->Add(butSubmit, 1, wxEXPAND | wxALL, MARGIN);

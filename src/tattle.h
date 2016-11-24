@@ -127,6 +127,8 @@ namespace tattle
         
         wxString promptTitle;
         wxString promptMessage;
+		
+		wxString labelSend, labelCancel;
         
         bool silent;
         
@@ -135,7 +137,7 @@ namespace tattle
         
     public:
         
-        Report() { silent = false; }
+        Report() { silent = false; labelSend = "Send Report"; labelCancel = "Don't Send"; }
     };
     
     /*
