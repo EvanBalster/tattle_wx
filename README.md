@@ -42,7 +42,7 @@ Version 0.3 of the tattle command-line interface.  Note that parameters containi
 | Flag  | Long Form        | Argument          | Effect |
 |-------|------------------|-------------------|--------|
 | `-h`  | `--help`         | _none_            | Displays help on command-line parameters. |
-| `-up` | `--url-post`     | `<url>`           | **Required**.  URL for posting error reports. |
+| `-up` | `--url-post`     | `<url>`           | URL for posting error reports.  **At least one URL is required.** |
 | `-uq` | `--url-query`    | `<url>`           | URL for advance query. |
 | `-s`  | `--silent`       | _none_            | Post a report without displaying any UI. |
 | `-c`  | `--config-file`  | `<fname>`         | Specify a configuration file containing more of these options. |
