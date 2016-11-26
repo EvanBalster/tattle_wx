@@ -3,7 +3,6 @@
 //  tattle
 //
 //  Created by Evan Balster on 11/12/16.
-//  Copyright © 2016 imitone. All rights reserved.
 //
 
 #ifndef tattle_h
@@ -66,10 +65,13 @@ namespace tattle
         
         struct Parameter
         {
-            Parameter() : type(PARAM_NONE), trimBegin(0), trimEnd(0) {}
+            Parameter();
             
             PARAM_TYPE  type;
             wxString    name;
+			
+			// Include in pre-query
+			bool        preQuery;
 			
             // Filename if applicable
             wxString    fname;
@@ -93,51 +95,106 @@ namespace tattle
         };
         
         typedef std::list<Parameter> Parameters;
-        
-        struct Detail
-        {
-            DETAIL_TYPE type;
-            wxString    label;
-            wxString    value;
-        };
-        
-        typedef std::list<Detail> Details;
-        
-        Parameter *findParam(const wxString &name)
-        {
-            for (Parameters::iterator i = params.begin(); i != params.end(); ++i) if (i->name == name) return &*i;
-            return NULL;
-        }
+		
+		/*
+			Represents a parsed HTTP URL.
+				base is an IP or hostname string, EG. uploads.example.com
+				path is the path following the hostname, EG. /error/report.php
+		*/
+		struct ParsedURL
+		{
+			wxString host, path;
+			unsigned long port;
+			
+			
+			ParsedURL() {port=80;}
+			
+			// Set to a URL.  Only host, path and port will be used.
+			bool set(wxString fullURL);
+			
+			bool isSet() const    {return host.Length() != 0;}
+		};
+		
+		/*
+			When performing a pre-query, the
+		*/
+		enum SERVER_COMMAND
+		{
+			SC_NONE         = 0, // No advice; proceed as usual
+			SC_STOP         = 1, // Stop after displaying response
+			SC_PROMPT       = 2, // Prompt after displaying response
+			SC_STOP_ON_LINK = 3, // Halt only if link is followed
+		};
+		
+		/*
+			Represents the result of an HTTP query
+		*/
+		struct Reply
+		{
+			Reply();
+			
+			// HTTP status
+			bool            connected;  // Whether we connected to the server
+			int             statusCode; // HTTP status, or 0 if not connected
+			wxProtocolError error;
+			
+			wxString    raw;
+			wxString    title, message, link;
+			SERVER_COMMAND command;
+			
+			bool ok()       const;
+			bool valid()    const;
+			bool sentLink() const;
+			
+			
+			
+			
+			// Fill in string fields from HTTP request / stream
+			void pull(wxHTTP &http, const ParsedURL &url, wxString query = wxT(""));
+			
+			// Assigns title, message and link based on raw reply text
+			void parseRaw(const ParsedURL &url);
+		};
+		
+		
+	public:
+		Report();
+	
+        Parameter *findParam(const wxString &name);
 		
 		// Read file contents into fileContents buffers
 		void readFiles();
+		
+		
+		// Query the server using the query address.
+		Reply httpQuery() const;
+		
+		// Perform HTTP post, returning whether successful.
+		Reply httpPost() const;
+		
+		// Test connectivity by making a test connection (but no actual HTTP query)
+		bool  httpTest(const ParsedURL &url) const;
+		
         
-        // Encode HTTP post request
-        void encodePost(wxHTTP &request) const;
+        // Encode HTTP query and post request
+		wxString preQueryString()            const;
+        void     encodePost(wxHTTP &request) const;
         
     public: // members
-		
-		struct UploadURL
-		{
-			wxString base, path;
-			
-			bool set(wxString fullURL);
-		}
-			uploadURL;
+		ParsedURL postURL, queryURL;
         
         wxString promptTitle;
         wxString promptMessage;
 		
-		wxString labelSend, labelCancel;
+		wxString labelSend, labelCancel, labelView;
+		
+		wxString dirLabel, dirPath;
         
         bool silent;
+		
+		bool connectionWarning;
         
         Parameters params;
-        Details    details;
-        
-    public:
-        
-        Report() { silent = false; labelSend = "Send Report"; labelCancel = "Don't Send"; }
     };
     
     /*
@@ -155,6 +212,12 @@ namespace tattle
         };
         
         Prompt(wxWindow * parent, wxWindowID id, Report &report);
+		
+		/*
+			Display a dialog box describing a server's reply.
+				Returns true if the user followed a link.
+		*/
+		static bool DisplayReply(const Report::Reply &reply, wxWindow *parent);
         
     private:
         struct Field
@@ -176,6 +239,37 @@ namespace tattle
         
         wxDECLARE_EVENT_TABLE();
     };
+	
+	/*
+		This dialog allows a user to view a report's contents
+	*/
+	class ViewReport : public wxDialog
+    {
+    public:
+        enum EventTypes
+        {
+            Ev_Exit = wxID_EXIT,
+            Ev_Done = wxID_OK,
+            Ev_Open = wxID_OPEN,
+        };
+        
+        ViewReport(wxWindow * parent, wxWindowID id, Report &report);
+		virtual ~ViewReport();
+		
+		static bool Exists();
+        
+    private:
+        void OnDone (wxCommandEvent & event);
+        void OnOpen (wxCommandEvent & event);
+        void OnClose(wxCloseEvent   & event);
+        
+        Report &report;
+        
+        wxDECLARE_EVENT_TABLE();
+    };
+	
+	// Utility functions
+	wxString GetTagContents(const wxString &reply, const wxString &tagName);
 	
 	class TattleApp;
 }

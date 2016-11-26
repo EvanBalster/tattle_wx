@@ -3,7 +3,6 @@
 //  tattle
 //
 //  Created by Evan Balster on 11/12/16.
-//  Copyright © 2016 imitone. All rights reserved.
 //
 
 #include "tattle.h"
@@ -32,15 +31,18 @@ namespace tattle
 
 		CMD_HELP          ("h", "help",           "Displays help on command-line parameters.")
 
-		CMD_OPTION_STRING ("u", "url",            "Target URL for reporting.  Required.")
+		CMD_OPTION_STRING ("up", "url-post",      "<url>    HTTP URL for posting report.  Required.")
+		CMD_OPTION_STRING ("uq", "url-query",     "<url>    HTTP URL for pre-query.")
 
-		CMD_SWITCH        ("s", "silent",         "Upload the report without prompting the user.")
+		CMD_SWITCH        ("s",  "silent",        "Bypass prompt; upload without user input.")
 		//CMD_SWITCH       ("t", "stay-on-top",     "Make the prompt GUI stay on top.")
 		//CMD_SWITCH       ("w", "parent-window",   "Make the prompt GUI stay on top.")
 		
-		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more options, 1/line.")
+		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more arguments.")
 
 		CMD_OPTION_STRINGS("a",  "arg",           "<parameter>=<value>  Argument string.")
+		CMD_OPTION_STRINGS("aq", "arg-query",     "<parameter>=<value>  Argument string used in pre-query.")
+		
 		CMD_OPTION_STRINGS("ft", "file",          "<parameter>=<fname>  Argument text file.")
 		CMD_OPTION_STRINGS("fb", "file-binary",   "<parameter>=<fname>  Argument file, binary.")
 		
@@ -49,20 +51,19 @@ namespace tattle
 		CMD_OPTION_STRINGS("tn", "trunc-note",    "<param>=<text>       Line of text marking truncation.")
 
 		CMD_OPTION_STRING ("pt", "title",         "<title>              Title of the prompt window.")
-		CMD_OPTION_STRING ("pi", "message",       "<message>            A header message summarizing the prompt.")
-		CMD_OPTION_STRING ("ps", "text-send",     "<text>               Text of the 'send' button.")
-		CMD_OPTION_STRING ("pc", "text-cancel",   "<text>               Text of the 'cancel' button.")
+		CMD_OPTION_STRING ("pm", "message",       "<message>            A header message summarizing the prompt.")
+		CMD_OPTION_STRING ("ps", "label-send",    "<text>               Text of the 'send' button.")
+		CMD_OPTION_STRING ("pc", "label-cancel",  "<text>               Text of the 'cancel' button.")
+		CMD_OPTION_STRING ("pv", "label-view",    "<text>               Text of the 'view data' button.")
 		
-		
-		CMD_OPTION_STRINGS("pf", "field",         "<parameter>=<label>  Single-line field for a user argument.")
-		CMD_OPTION_STRINGS("pm", "field-multi",   "<parameter>=<label>  Multi-line field.")
-		CMD_OPTION_STRINGS("pd", "field-default", "<parameter>=<value>  Hint message for -pf field.")
-		CMD_OPTION_STRINGS("ph", "field-hint",    "<parameter>=<hint>   Default value for a field.")
-		
+		CMD_OPTION_STRINGS("i",  "field",         "<parameter>=<label>  Single-line field for user input.")
+		CMD_OPTION_STRINGS("im", "field-multi",   "<parameter>=<label>  Multi-line field.")
+		CMD_OPTION_STRINGS("id", "field-default", "<parameter>=<value>  Hint message for -uf field.")
+		CMD_OPTION_STRINGS("ih", "field-hint",    "<parameter>=<hint>   Default value for a field.")
 
 		//CMD_OPTION_STRINGS("ts", "tech-string",   "<label>:<value>      Technical info string.")
 		//CMD_OPTION_STRINGS("tf", "tech-file",     "<label>:<fname>      Technical info as a linked file.")
-		CMD_OPTION_STRINGS("vd", "info-dir",      "<label>=<path>       Folder linked in 'view details' dialog.")
+		CMD_OPTION_STRINGS("vd", "info-dir",      "<label>=<path>       Folder listed in 'view data' dialog.")
 
 		{wxCMD_LINE_NONE}
 	};
@@ -110,7 +111,10 @@ public:
 		bool success = true;
 		
 		wxString argName = arg.GetShortName();
-		char c0 = char(argName[0]), c1 = ((argName.length() > 1) ? char(argName[1]) : '\0');
+		char
+			c0 = char(argName[0]),
+			c1 = ((argName.length() > 1) ? char(argName[1]) : '\0');
+		//	c2 = ((argName.length() > 2) ? char(argName[2]) : '\0');
 		
 		CMD_LINE_ERR err = CMD_ERR_NONE;
 		
@@ -120,10 +124,18 @@ public:
 		{
 			if (c0 == 'u')
 			{
-				if (!report.uploadURL.set(arg.GetStrVal()))
+				/*
+					URLs
+				*/
+				if (c1 == 'p')
 				{
-					err = CMD_ERR_BAD_URL;
+					if (!report.postURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
 				}
+				else if (c1 == 'q')
+				{
+					if (!report.queryURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
+				}
+				else err = CMD_ERR_UNKNOWN;
 			}
 			else if (c0 == 's')
 			{
@@ -164,6 +176,7 @@ public:
 				param.type = PARAM_STRING;
 				param.name = name;
 				param.value = value;
+				param.preQuery = (c1 == 'q');
 				report.params.push_back(param);
 			}
 			else if (c0 == 'f')
@@ -234,23 +247,16 @@ public:
 			else if (c0 == 'p')
 			{
 				//Prompt stuff
-				if (c1 == 't')
-				{
-					report.promptTitle = arg.GetStrVal();
-				}
-				else if (c1 == 'i')
-				{
-					report.promptMessage = arg.GetStrVal();
-				}
-				else if (c1 == 's')
-				{
-					report.labelSend = arg.GetStrVal();
-				}
-				else if (c1 == 'c')
-				{
-					report.labelCancel = arg.GetStrVal();
-				}
-				else if (c1 == 'f' || c1 == 'm')
+				if      (c1 == 't') report.promptTitle   = arg.GetStrVal();
+				else if (c1 == 'm') report.promptMessage = arg.GetStrVal();
+				else if (c1 == 's') report.labelSend     = arg.GetStrVal();
+				else if (c1 == 'c') report.labelCancel   = arg.GetStrVal();
+				else if (c1 == 'v') report.labelView     = arg.GetStrVal();
+				else err = CMD_ERR_UNKNOWN;
+			}
+			else if (c0 == 'i')
+			{
+				if (c1 == '\0' || c1 == 'm')
 				{
 					wxString name, label;
 					if (!ParsePair(arg.GetStrVal(), name, label)) { err = CMD_ERR_BAD_PAIR; break; }
@@ -261,7 +267,7 @@ public:
 					Report::Parameter param;
 					param.name = name;
 					param.label = label;
-					if (c1 == 'f')      param.type = PARAM_FIELD;
+					if (c1 == '\0')      param.type = PARAM_FIELD;
 					else if (c1 == 'm') param.type = PARAM_FIELD_MULTI;
 					report.params.push_back(param);
 				}
@@ -293,15 +299,11 @@ public:
 			{
 				if (c1 == 'd')
 				{
-					// Argument string
 					wxString label, path;
 					if (!ParsePair(arg.GetStrVal(), label, path)) { err = CMD_ERR_BAD_PAIR; break; }
-
-					Report::Detail detail;
-					detail.type = DETAIL_DIR;
-					detail.label = label;
-					detail.value = path;
-					report.details.push_back(detail);
+					
+					report.dirLabel = label;
+					report.dirPath = path;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
@@ -377,14 +379,18 @@ public:
 	// initialization (doing it here and not in the ctor allows to have an error
 	// return: if OnInit() returns false, the application terminates)
 	virtual bool OnInit() wxOVERRIDE;
+	
+	virtual int OnRun() wxOVERRIDE;
 
 private:
 	Report report;
+	
+	bool earlyFinish;
 };
 
 bool TattleApp::OnInit()
 {
-	report.promptTitle = "Tattle Report";
+	earlyFinish = false;
 	
 	//cout << "Reading command line..." << endl;
 
@@ -395,7 +401,7 @@ bool TattleApp::OnInit()
 		
 	bool badCmdLine = false;
 		
-	if (report.uploadURL.base.length() == 0)
+	if (!report.postURL.isSet())
 	{
 		cout << "An upload URL must be specified with the -u or --url option." << endl;
 		badCmdLine = true;
@@ -417,19 +423,70 @@ bool TattleApp::OnInit()
 
 	// Debug
 	cout << "Successful init." << endl
-		<< "  URL: http://" << report.uploadURL.base << report.uploadURL.path << endl
+		<< "  URL: http://" << report.postURL.host << report.postURL.path << endl
 		<< "  Parameters:" << endl;
 	for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
 		cout << "    - " << i->name << "= `" << i->value << "' Type#" << i->type << endl;
+	
+	/*
+		Pre-query step, if applicable
+	*/
+	if (report.queryURL.isSet())
+	{
+		Report::Reply reply = report.httpQuery();
+		
+		if (reply.valid())
+		{
+			bool usedLink = Prompt::DisplayReply(reply, 0);
+			
+			if (reply.command == Report::SC_STOP ||
+				(reply.command == Report::SC_STOP_ON_LINK && usedLink))
+			{
+				earlyFinish = true;
+				return true;
+			}
+		}
+		else
+		{
+			report.connectionWarning = true;
+		}
+	}
+	else if (!report.silent)
+	{
+		if (!report.httpTest(report.postURL))
+			report.connectionWarning = true;
+	}
+	
+	if (report.silent)
+	{
+		// Fire a POST request and hope for the best
+		report.httpPost();
+		
+		earlyFinish = true;
+		return true;
+	}
+	else
+	{
+		// create the main dialog
+		Prompt *prompt = new Prompt(NULL, -1, report);
+		
+		// Show the dialog, non-modal
+		prompt->Show(true);
+		
+		// Continue execution
+		return true;
+	}
+}
 
-	// create the main dialog
-	Prompt *prompt = new Prompt(NULL, -1, report);
-
-	// Show the dialog, non-modal
-	prompt->Show(true);
-
-	// Continue execution
-	return true;
+int TattleApp::OnRun()
+{
+	if (earlyFinish)
+	{
+		ExitMainLoop();
+		return 0;
+	}
+	
+	return wxApp::OnRun();
 }
 
 // the application icon (under Windows it is in resources and even

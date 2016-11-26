@@ -3,10 +3,10 @@
 //  tattle
 //
 //  Created by Evan Balster on 11/12/16.
-//  Copyright © 2016 imitone. All rights reserved.
 //
 
 #include <cstring>
+#include <algorithm>
 
 #include "tattle.h"
 
@@ -16,48 +16,25 @@
 using namespace tattle;
 
 
-bool Report::UploadURL::set(wxString url)
+Report::Report()
 {
-	// Must be ASCII
-	if (!url.IsAscii())
-	{
-		std::cout << "Error: Upload URL is not ASCII." << std::endl;
-		return false;
-	}
-	
-	// Starts with http://
-	{
-		wxString sHTTP = wxT("http://");
-		int pHTTP = url.Find(sHTTP);
-		if (pHTTP != 0)
-		{
-			std::cout << "Error: Upload URL does not begin with 'http://'" << std::endl;
-			return false;
-		}
-		
-		pHTTP += sHTTP.length();
-		url = url.Mid(pHTTP);
-	}
-	
-	// May contain a slash after http
-	int pSlash = url.Find(wxT("/"));
-	if (pSlash == wxNOT_FOUND)
-	{
-		base = url;
-		path = "";
-	}
-	else
-	{
-		base = url.Mid(0, pSlash);
-		path = url.Mid(pSlash);
-	}
-	
-	// Base must contain a dot
-	if (base.Find(wxT(".")) == wxNOT_FOUND)
-	{
-		std::cout << "Warning: Upload URL has no dots in its name." << std::endl;
-	}
-	return true;
+	silent = false;
+	connectionWarning = false;
+	labelSend = "Send Report";
+	labelCancel = "Don't Send";
+	labelView = "Details...";
+}
+
+Report::Parameter *Report::findParam(const wxString &name)
+{
+	for (Parameters::iterator i = params.begin(); i != params.end(); ++i) if (i->name == name) return &*i;
+	return NULL;
+}
+
+
+Report::Parameter::Parameter() :
+	type(PARAM_NONE), preQuery(false), trimBegin(0), trimEnd(0)
+{
 }
 
 
@@ -133,7 +110,9 @@ void Report::readFiles()
 		}
 	}
 }
-	
+
+
+
 void Report::encodePost(wxHTTP &http) const
 {
 	// Boundary with 12-digit random number
@@ -201,4 +180,57 @@ void Report::encodePost(wxHTTP &http) const
 	cout << "HTTP Post Buffer:" << endl << ((const char*) postBuffer.GetData()) << endl;
 	
 	http.SetPostBuffer(wxT("multipart/form-data; boundary=\"") + wxString(boundary_id) + ("\""), postBuffer);
+}
+
+static void AppendPercentEncoded(wxString &str, char c)
+{
+	str.append('%');
+	str.append("0123456789ABCDEF"[(int(c)>>4)&15]);
+	str.append("0123456789ABCDEF"[(int(c)   )&15]);
+}
+
+wxString Report::preQueryString() const
+{
+	wxString query;
+	
+	for (Parameters::const_iterator i = params.begin(); i != params.end(); ++i)
+	{
+		if (i->preQuery)
+		{
+			query += (query.Length() ? wxT("&") : wxT("?"));
+			query += i->name;
+			query += "=";
+			
+			// Quick and dirty URL encoding
+			size_t len = std::min<size_t>(i->value.Length(), 64);
+			for (size_t n = 0; n < len; ++n)
+			{
+				wxUniChar uc = i->value.GetChar(n);
+				char c;
+				if (uc.IsAscii() && uc.GetAsChar(&c))
+				{
+					if (c >= '0' && c <= '9') {query.Append(uc); continue;}
+					if (c >= 'a' && c <= 'z') {query.Append(uc); continue;}
+					if (c >= 'A' && c <= 'Z') {query.Append(uc); continue;}
+					if (c=='.'||c=='-'||c=='_'||c=='~') {query.append(uc); continue;}
+					
+					AppendPercentEncoded(query, c);
+				}
+				else
+				{
+					// Encode in UTF-8 and percent encode that
+					wxString tmp; tmp.append(uc);
+					wxScopedCharBuffer utf8 = tmp.ToUTF8();
+					
+					for (size_t m = 0; m < utf8.length(); ++m)
+					{
+						AppendPercentEncoded(query, utf8[m]);
+					}
+				}
+			}
+			
+		}
+	}
+	
+	return query;
 }

@@ -3,20 +3,15 @@
 //  tattle
 //
 //  Created by Evan Balster on 11/12/16.
-//  Copyright © 2016 imitone. All rights reserved.
 //
 
 #include "tattle.h"
 
-
-//Dialog
+//Dialog stuff
 #include <wx/button.h>
 #include <wx/stattext.h>
 #include <wx/statline.h>
 #include <wx/sizer.h>
-
-//HTML encoding
-#include <wx/sstream.h>
 
 
 using namespace tattle;
@@ -31,101 +26,121 @@ wxEND_EVENT_TABLE()
 
 void Prompt::OnDetails(wxCommandEvent & event)
 {
-	wxMessageBox(_("User requested details."));
+	if (!ViewReport::Exists())
+	{
+		ViewReport *viewReport = new ViewReport(NULL, -1, report);
+		
+		viewReport->ShowModal();
+	}
 }
 
-static wxString GrabReplyTag(const wxString &reply, const wxString &tagName)
+bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 {
-	wxString
-		tagOpen  = wxT("<") +tagName+wxT(">"),
-		tagClose = wxT("</")+tagName+wxT(">");
+	wxString errorMessage;
 	
-	int
-		ptOpen = reply.Find(tagOpen),
-		ptClose = reply.Find(tagClose);
+	bool didAction = false;
 	
-	if (ptOpen != wxNOT_FOUND && ptClose != wxNOT_FOUND)
+	if (!reply.connected)
 	{
-		ptOpen += tagOpen.Length();
-		if (ptOpen <= ptClose)
-			return reply.Mid(ptOpen, ptClose-ptOpen);
+		errorMessage =
+			"Failed to reach the website for the report.\nAre you connected to the internet?";
+	}
+	else if (!reply.ok())
+	{
+		errorMessage = "Failed to send the report.\n";
+		
+		if (reply.statusCode == 404)
+		{
+			errorMessage += "(uploader script not found)";
+		}
+		else
+		{
+			errorMessage += wxString::Format(wxT("HTTP status %i / WXE #%i"),
+				int(reply.statusCode), int(reply.error));
+		}
+	}
+	else if (!reply.valid())
+	{
+		// Reply is not formatted for tattle... assume
+		errorMessage = wxT("The report went to the wrong place.");
+		
+		if (reply.raw.Length())
+		{
+			wxString htmlTitle = GetTagContents(reply.raw, wxT("title"));
+			if (htmlTitle.Length())
+			{
+				if (htmlTitle.Length() > 128) htmlTitle.Truncate(128);
+				errorMessage += "\n\nGot a page titled: `" + htmlTitle + "'";
+			}
+			else
+			{
+				errorMessage += wxT("\nAre you connected to the internet?");
+				
+				wxString raw = reply.raw;
+				if (raw.Length() > 512)
+				{
+					raw.Truncate(512);
+					raw += wxT(" ...");
+				}
+				errorMessage += wxT("\n\nThe server says:\n") + raw;
+			}
+		}
+		else
+		{
+			errorMessage += wxT("\nAre you connected to the internet?");
+		}
+		
+	}
+	else if (reply.sentLink())
+	{
+		wxString title = reply.title, msg = reply.message;
+	
+		if (!title.Length()) title = wxT("Suggested Link");
+		if (!msg  .Length()) msg   = wxT("The server replied with a link.");
+		
+		msg += wxT("\n\n") + reply.link + wxT("\nOpen in your browser?");
+		
+		wxMessageDialog *offerLink = new wxMessageDialog(parent,
+			msg, title, wxICON_INFORMATION|wxOK|wxCANCEL|wxCENTER);
+		
+		offerLink->SetOKLabel(wxT("Open Link"));
+		
+		int result = offerLink->ShowModal();
+		
+		delete offerLink;
+		
+		if (result == wxYES)
+		{
+			wxLaunchDefaultBrowser(reply.link);
+			didAction = true;
+		}
+	}
+	else if (reply.message.Length() > 0)
+	{
+		wxString title = reply.title, msg = reply.message;
+		if (!title.Length()) title = "Report Sent";
+		if (!msg  .Length()) msg   = "Your report was sent and accepted.";
+		
+		wxMessageBox(msg, title);
 	}
 	
-	return wxString();
+	if (errorMessage.Length())
+	{
+		wxMessageBox(errorMessage, wxT("Send Failed"), wxICON_ERROR);
+	}
+	
+	return didAction;
 }
 
 void Prompt::OnSubmit(wxCommandEvent & event)
 {
 	UpdateReportFromFields();
-
-	wxHTTP post;
-	report.encodePost(post);
 	
-	post.SetTimeout(10);
+	Report::Reply reply = report.httpPost();
 	
-	//wxString
+	DisplayReply(reply, this);
 	
-	if (!post.Connect(report.uploadURL.base))
-	{
-		wxMessageBox(_("Failed to reach the website for the report.\nAre you connected to the internet?"));
-		post.Close();
-		return;
-	}
-	
-	wxInputStream *httpStream = post.GetInputStream(report.uploadURL.path);
-	
-	if (post.GetError() == wxPROTO_NOERR)
-	{
-		wxString replyRaw;
-		wxStringOutputStream out_stream(&replyRaw);
-		httpStream->Read(out_stream);
-		
-		wxString
-			replyTitle = GrabReplyTag(replyRaw, wxT("tattle-title")),
-			replyMsg   = GrabReplyTag(replyRaw, wxT("tattle-message")),
-			replyLink  = GrabReplyTag(replyRaw, wxT("tattle-link"));
-		
-		
-		if (replyLink.Length() > 0)
-		{
-			replyLink = wxT("http://") + report.uploadURL.base + "/" + replyLink;
-
-			if (!replyTitle.Length()) replyTitle = wxT("Suggested Link");
-			if (!replyMsg  .Length()) replyMsg = wxT("The server suggests a solution.");
-			
-			replyMsg += wxT("\n\n") + replyLink +
-				wxT("\nOpen this link in your browser?");
-			
-			int result = wxMessageBox(replyMsg, replyTitle, wxYES_NO|wxCENTER);
-			
-			if (result == wxYES)
-			{
-				wxLaunchDefaultBrowser(replyLink);
-			}
-		}
-		else if (replyMsg.Length() > 0)
-		{
-			if (!replyTitle.Length()) replyTitle = "Report Sent!";
-			
-			wxMessageBox(replyMsg, replyTitle);
-		}
-		else
-		{
-			if (!replyTitle.Length()) replyTitle = "Report Sent";
-			
-			wxMessageBox(replyMsg, wxT("WEBSITE RESPONSE:\n\n") + replyRaw);
-		}
-	}
-	else
-	{
-		int err_no = post.GetError();
-		wxMessageBox(wxString::Format(wxT("Failed to upload the report: error %i"),err_no));
-	}
-	 
-	wxDELETE(httpStream);
-	post.Close();
-	
-	Close(true);
+	if (reply.valid()) Close();
 }
 
 void Prompt::OnCancel(wxCommandEvent & event)
@@ -167,7 +182,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	if (report.promptMessage.length())
 	{
 		wxStaticText *messageText = new wxStaticText(this, -1, report.promptMessage,
-			wxDefaultPosition, wxDefaultSize, wxCENTER);
+			wxDefaultPosition, wxDefaultSize, wxLEFT);
 		
 		ApplyMarkup(messageText, report.promptMessage);
 		
@@ -184,7 +199,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	{
 	case PARAM_FIELD:
 		{
-			wxStaticText *label = new wxStaticText(this, -1, i->label, wxDefaultPosition, wxDefaultSize, wxLEFT);
+			wxStaticText *label = new wxStaticText(this, -1, i->label);
 			
 			ApplyMarkup(label, i->label);
 
@@ -212,7 +227,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		{
 			if (sizerField) sizerField = NULL;
 
-			wxStaticText *label = new wxStaticText(this, -1, i->label, wxDefaultPosition, wxDefaultSize, wxLEFT);
+			wxStaticText *label = new wxStaticText(this, -1, i->label);
 
 			wxTextCtrl *field = new wxTextCtrl(this, -1, i->value,
 				wxDefaultPosition, wxSize(400, 200), wxTE_MULTILINE, wxDefaultValidator, i->name);
@@ -227,19 +242,32 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		// Not fields
 		break;
 	}
+	
+	if (report.connectionWarning)
+	{
+		wxStaticText *messageText = new wxStaticText(this, -1,
+			wxT("Check your internet connection."));
+		
+		sizerTop->Add(messageText, 0, wxALIGN_CENTER | wxALL, MARGIN);
+	}
 
 	{
 		wxBoxSizer *actionRow = new wxBoxSizer(wxHORIZONTAL);
 
-		wxButton
-			*butSubmit = new wxButton(this, wxID_OK, _(report.labelSend)),
-			*butCancel = new wxButton(this, wxID_CANCEL, _(report.labelCancel));
-			//*butDetails = new wxButton(this, wxID_VIEW_DETAILS, _("View Details..."));
+		wxButton *butSubmit, *butCancel;
+		
+		butSubmit = new wxButton(this, wxID_OK, report.labelSend);
+		butCancel = new wxButton(this, wxID_CANCEL, report.labelCancel);
 
 		actionRow->Add(butSubmit, 1, wxEXPAND | wxALL, MARGIN);
 		actionRow->Add(butCancel, 0, wxALL, MARGIN);
-		//actionRow->Add(butDetails, 0, wxALL, MARGIN);
-
+		
+		if (report.labelView.Length())
+		{
+			wxButton *butView = new wxButton(this, wxID_VIEW_DETAILS, report.labelView);
+			actionRow->Add(butView, 0, wxALL, MARGIN);
+		}
+		
 		butSubmit->SetDefault();
 
 		sizerTop->Add(actionRow, 0, wxALIGN_CENTER | wxALL);
