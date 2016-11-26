@@ -45,7 +45,7 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-h`  | `--help`         | _none_            | Displays help on command-line parameters. |
 | `-up` | `--url-post`     | `<url>`           | **Required**.  URL for posting error reports. |
 | `-uq` | `--url-query`    | `<url>`           | URL for advance query. |
-| `-s`  | `--silent`       | _none_            | Post a report without showing any UI.  No user fields will be filled. |
+| `-s`  | `--silent`       | _none_            | Post a report without displaying any UI. |
 | `-c`  | `--config-file`  | `<fname>`         | Specify a configuration file containing more of these options. |
 | `-a`  | `--arg`          | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
 | `-aq` | `--arg-query`    | `<param>=<value>` | As `-a` but also included in advance query. |
