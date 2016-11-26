@@ -4,7 +4,8 @@
 -aq "app-error-hash=FAKERS"
 
 -pt "Error Report"
--pi "imitone crashed!  Tell us what happened and we'll investigate."
+-pm "imitone crashed!  Tell us what happened and we'll investigate."
+
 -ft app-log=log.txt
 -ft app-error=log.txt
 -im "user_desc=Use this space to tell us what happened:"
