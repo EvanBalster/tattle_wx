@@ -86,13 +86,16 @@ Tattle is inspired by the Unity crash reporter and Google Breakpad.  As far as I
 
 Things that still need doing:
 
-* Linking to the `-cd` folder.
-* Verify full unicode compatibility.
+* Verify unicode compatibility.
 
 Things I may investigate in the future:
 
+* Nicer format for config files
+* Language files for localizing the UI
 * A progress bar for the report upload.
 * Persistent fields (such as user's E-mail address)
 * File compression.
 * A way to save compiled reports to disk.
-* Possibly some built in "auto" parameters such as a system description.
+* Possibly some built in "auto" parameters
+  * System description
+  * Report time (local/GMT)
