@@ -1,15 +1,37 @@
 # Tattle wx
 
-**This is a work in progress and may not be viable for serious usage yet.**
+**This is a work in progress and may still be subject to compatibility-breaking changes.**
 
-Tattle is a native utlity for purposes of error reporting, feedback and data collection.  It is meant to be invoked by another application, and compiles a report consisting of string fields, attached files, and user-entered data, and uploads it to an HTTP server using the POST method.
+Tattle is a native utility for purposes of error reporting, feedback and data collection.  It is meant to be invoked by another application, compiles a report consisting of command-line arguments, attached files, and user-entered data, and uploads it to an HTTP server using the POST method.
 
 Tattle's behavior is defined by arguments which may come from a command line or configuration file.  It is designed as an executable rather than a library; this isolates it from critical errors in the calling application.
 
 
 ## Workflow
 
-When invoked, Tattle parses its configuration (see below) and fills its parameter list with a combination of application-supplied values, user fields and attached files.  A target URL is required.
+Tattle is generally invoked by another application, which provides it with a configuration.  Tattle compiles a list of parameters, which can include text and file data as well as fields for the user to fill in.  Before asking the user for information, Tattle can make a GET request to the server in order to identify a problem and suggest a solution.  Assuming that does not prevent 
+
+Step-by-step:
+
+1. Parse Configuration (see below)
+  * Includes the command-line and any configuration files.
+  * This builds the parameter list.
+2. Read files into memory
+  * This is done immediately.  (in case files change)
+  * File truncation is applied here, limiting memory usage.
+3. Advance Query _(`-uq` enables)_
+  * Fire HTTP GET request, with `-aq` parameters included in the URL query.
+  * If the server responds with text or a link, this is displayed to the user.
+  * _The server may specify that execution should stop here.  (Not yet implemented!)_
+  * This step happens only if the `-uq` flag is passed.
+4. Prompt _(`-s` bypasses)_
+  * Display a prompt to the user, which may include an informative message and input fields.
+  * The user may proceed using the **send** button, or abort using the **cancel** button.
+  * _The user may view the contents of the error report with the **view contents** button.  (Not yet implemented!)_
+5. Post
+  * All parameters are encoded into an HTTP POST request.
+  * The post request is sent to the post URL.
+  * If the post fails, the user is returned to the prompt.
 
 Typically, Tattle displays a UI which will, at minimum, allow the user to either send the report or cancel it.  Any fields specified in the configuration will be displayed to the user, their contents submitted
 
@@ -21,26 +43,34 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | Flag  | Long Form        | Argument          | Effect |
 |-------|------------------|-------------------|--------|
 | `-h`  | `--help`         | _none_            | Displays help on command-line parameters. |
-| `-u`  | `--url`          | `<url>`           | **Required**.  Specify the desination URL. |
-| `-s`  | `--silent`       | _none_            | Post a report without showing any UI.  No user fields will be filled. |
+| `-up` | `--url-post`     | `<url>`           | **Required**.  URL for posting error reports. |
+| `-uq` | `--url-query`    | `<url>`           | URL for advance query. |
+| `-s`  | `--silent`       | _none_            | Post a report without displaying any UI. |
 | `-c`  | `--config-file`  | `<fname>`         | Specify a configuration file containing more of these options. |
 | `-a`  | `--arg`          | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
+| `-aq` | `--arg-query`    | `<param>=<value>` | As `-a` but also included in advance query. |
 | `-ft` | `--file`         | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
-| `-fb` | `--file-binary`  | `<param>=<fname>` | Upload a binary file.  (Linked rather than printed in the UI) |
-| `-pt` | `--title`        | `<text>`          | Supply a title for the prompt window. |
-| `-pi` | `--message`      | `<text>`          | Supply a message which will appear as the header of the prompt. |
-| `-pf` | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with an instructive label. |
-| `-pm` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
-| `-pd` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
-| `-ph` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
-| `-cd` | `--content-dir`  | `<label>=<path>`  | Supply a folder which will be linked in the "view contents" dialog. |
+| `-fb` | `--file-binary`  | `<param>=<fname>` | Upload a binary file.  (Different content-type.) |
+| `-tb` | `--trunc-begin`  | `<param>=<size>`  | Truncate a file parameter.  Include at least the first N bytes. |
+| `-te` | `--trunc-end`    | `<param>=<size>`  | As `-tb` but preserve the last N bytes.  Combines with `-tb`! |
+| `-tn` | `--trunc-note`   | `<param>=<text>`  | A line of text marking the truncation. |
+| `-pt` | `--title`        | `<text>`          | A title for the prompt window. |
+| `-pm` | `--message`      | `<text>`          | A message appearing at the top of the prompt window. |
+| `-ps` | `--label-send`   | `<text>`          | Label for the 'Send Report' button. |
+| `-pc` | `--label-cancel` | `<text>`          | Label for the 'Don't Send Report' button. |
+| `-pv` | `--label-view`   | `<text>`          | Label for the 'View Report Contents' button. |
+| `-i`  | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with instructive label. |
+| `-im` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
+| `-id` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
+| `-ih` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
+| `-vd` | `--info-dir`     | `<label>=<path>`  | A folder listed in the 'View Report Contents' dialog. |
 
 
 ## This implementation
 
 **tattle_wx** is based on the wxWidgets framework, depending on its Core, Base and Net libraries.  This enables portability to Windows, Mac OS X and Linux (and potentially others).  It adheres to the C++98 standard.
 
-The author is interested in alternative implementations of this utility, in particular native versions which minimize its filesize and implementations which might make it useful on mobile.
+The author is interested in alternative implementations of this utility, in particular native versions which minimize its footprint and methods of porting it to mobile.
 
 
 ## Building Notes
@@ -56,15 +86,13 @@ Tattle is inspired by the Unity crash reporter and Google Breakpad.  As far as I
 
 Things that still need doing:
 
-* A dialog allowing the user to review report contents:  Fields, files and the `-cd` folder.
-* A progress report dialog for the upload.
-* Clearer reporting of upload errors.
+* Linking to the `-cd` folder.
 * Verify full unicode compatibility.
 
 Things I may investigate in the future:
 
-* Remembered fields (such as E-mail address)
+* A progress bar for the report upload.
+* Persistent fields (such as user's E-mail address)
 * File compression.
 * A way to save compiled reports to disk.
-* A preemptive warning when not connected to the internet.
 * Possibly some built in "auto" parameters such as a system description.
