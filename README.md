@@ -62,7 +62,7 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-im` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
 | `-id` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
 | `-ih` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
-| `-vd` | `--info-dir`     | `<label>=<path>`  | Supply a folder which will be linked in the "view contents" dialog. |
+| `-vd` | `--info-dir`     | `<label>=<path>`  | A folder listed in the 'View Report Contents' dialog. |
 
 
 ## This implementation
