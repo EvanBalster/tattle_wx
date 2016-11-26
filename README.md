@@ -51,8 +51,8 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-ft` | `--file`         | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
 | `-fb` | `--file-binary`  | `<param>=<fname>` | Upload a binary file.  (Different content-type.) |
 | `-tb` | `--trunc-begin`  | `<param>=<size>`  | Truncate a file parameter.  Include at least the first N bytes. |
-| `-te` | `--trunc-end`    | `<param>=<size>`  | As `-tb` but include at least the last N bytes.  Combines with `-tb`. |
-| `-tn` | `--trunc-note`   | `<param>=<text>`  | A line of text to be inserted at the point of truncation. |
+| `-te` | `--trunc-end`    | `<param>=<size>`  | As `-tb` but preserve the last N bytes.  Combines with `-tb`! |
+| `-tn` | `--trunc-note`   | `<param>=<text>`  | A line of text marking the truncation. |
 | `-pt` | `--title`        | `<text>`          | Supply a title for the prompt window. |
 | `-pm` | `--message`      | `<text>`          | Supply a message which will appear as the header of the prompt. |
 | `-ps` | `--label-send`   | `<text>`          | Label for the 'Send Report' button. |
@@ -62,7 +62,7 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-im` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
 | `-id` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
 | `-ih` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
-| `-vd` | `--info-dir`     | `<label>=<path>`  | **unimplemented**.  Supply a folder which will be linked in the "view contents" dialog. |
+| `-vd` | `--info-dir`     | `<label>=<path>`  | Supply a folder which will be linked in the "view contents" dialog. |
 
 
 ## This implementation
