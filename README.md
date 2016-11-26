@@ -48,17 +48,18 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-s`  | `--silent`       | _none_            | Post a report without showing any UI.  No user fields will be filled. |
 | `-c`  | `--config-file`  | `<fname>`         | Specify a configuration file containing more of these options. |
 | `-a`  | `--arg`          | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
+| `-aq` | `--arg-query`    | `<param>=<value>` | As `-a` but also included in advance query. |
 | `-ft` | `--file`         | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
 | `-fb` | `--file-binary`  | `<param>=<fname>` | Upload a binary file.  (Different content-type.) |
 | `-tb` | `--trunc-begin`  | `<param>=<size>`  | Truncate a file parameter.  Include at least the first N bytes. |
 | `-te` | `--trunc-end`    | `<param>=<size>`  | As `-tb` but preserve the last N bytes.  Combines with `-tb`! |
 | `-tn` | `--trunc-note`   | `<param>=<text>`  | A line of text marking the truncation. |
-| `-pt` | `--title`        | `<text>`          | Supply a title for the prompt window. |
-| `-pm` | `--message`      | `<text>`          | Supply a message which will appear as the header of the prompt. |
+| `-pt` | `--title`        | `<text>`          | A title for the prompt window. |
+| `-pm` | `--message`      | `<text>`          | A message appearing at the top of the prompt window. |
 | `-ps` | `--label-send`   | `<text>`          | Label for the 'Send Report' button. |
 | `-pc` | `--label-cancel` | `<text>`          | Label for the 'Don't Send Report' button. |
 | `-pv` | `--label-view`   | `<text>`          | Label for the 'View Report Contents' button. |
-| `-i`  | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with an instructive label. |
+| `-i`  | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with instructive label. |
 | `-im` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
 | `-id` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
 | `-ih` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
