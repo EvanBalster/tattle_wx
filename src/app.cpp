@@ -402,9 +402,9 @@ bool TattleApp::OnInit()
 		
 	bool badCmdLine = false;
 		
-	if (!report.postURL.isSet())
+	if (!report.postURL.isSet() && !report.queryURL.isSet())
 	{
-		cout << "An upload URL must be specified with the -u or --url option." << endl;
+		cout << "At least one URL must be set with the --url-* options." << endl;
 		badCmdLine = true;
 	}
 	
@@ -458,6 +458,10 @@ bool TattleApp::OnInit()
 			report.connectionWarning = true;
 	}
 	
+	if (!report.postURL.isSet())
+	{
+		// Query only, apparently
+	}
 	if (report.silent)
 	{
 		// Fire a POST request and hope for the best
