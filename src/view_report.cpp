@@ -107,7 +107,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		else
 		{
 			wxTextCtrl *queryDisplay = new wxTextCtrl(this, -1, argDump,
-				wxDefaultPosition, wxSize(360, 75),
+				wxDefaultPosition, wxSize(450, 125),
 				wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL, wxDefaultValidator);
 			
 			sizerTop->Add(queryDisplay, 0, wxEXPAND | wxALL, MARGIN);
@@ -147,7 +147,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		if (!first)
 		{
 			wxTextCtrl *argDisplay = new wxTextCtrl(this, -1, argDump,
-				wxDefaultPosition, wxSize(360, 100),
+				wxDefaultPosition, wxSize(450, 150),
 				wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL, wxDefaultValidator);
 			
 			sizerTop->Add(argDisplay, 0, wxEXPAND | wxALL, MARGIN);
@@ -156,7 +156,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 	
 	// List attached files
 	{
-	#if wxMAJOR_VERSION >= 3
+	#if 0 //wxMAJOR_VERSION >= 3
 		wxWrapSizer *sizerFiles = NULL;
 	#else
 		wxFlexGridSizer *sizerFiles = NULL;
@@ -174,16 +174,16 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 			
 			if (!sizerFiles)
 			{
-			#if wxMAJOR_VERSION >= 3
+			#if 0 //wxMAJOR_VERSION >= 3
 				sizerFiles = new wxWrapSizer();
 			#else
-				sizerFiles = new wxFlexGridSizer(3);
+				sizerFiles = new wxFlexGridSizer(4);
 			#endif
 			
-				sizerFiles->Add(
+				/*sizerFiles->Add(
 					new wxStaticText(this, -1,
 					wxT("Attached files:")),
-					0, wxALL | wxALIGN_LEFT, MARGIN);
+					0, wxALL | wxALIGN_LEFT, MARGIN);*/
 			
 				sizerTop->Add(sizerFiles, 0, wxALL | wxALIGN_CENTER, 0);
 			}
