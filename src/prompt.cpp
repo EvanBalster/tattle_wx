@@ -105,15 +105,22 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 		
 		offerLink->SetOKLabel(wxT("Open Link"));
 		
-		int result = offerLink->ShowModal();
+		const int result = offerLink->ShowModal();
 		
 		delete offerLink;
 		
-		if (result == wxYES)
+		if (result == wxID_OK) 
 		{
-			wxLaunchDefaultBrowser(reply.link);
-			didAction = true;
-		}
+			if (wxLaunchDefaultBrowser(reply.link))
+			{
+				didAction = true;
+			}
+			else
+			{
+				wxMessageBox(wxT("The link couldn't be opened for some reason:\n[")+reply.link+wxT("]"), wxT("Failed to open link"));
+				wxLaunchDefaultApplication(reply.link);
+			}
+		} 
 	}
 	else if (reply.message.Length() > 0)
 	{
