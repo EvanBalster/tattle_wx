@@ -27,10 +27,9 @@ Step-by-step:
 4. Prompt _(`-s` bypasses)_
   * Display a prompt to the user, which may include an informative message and input fields.
   * The user may proceed using the **send** button, or abort using the **cancel** button.
-  * _The user may view the contents of the error report with the **view contents** button.  (Not yet implemented!)_
+  * The user may view the contents of the error report with the **view data** button.
 5. Post
-  * All parameters are encoded into an HTTP POST request.
-  * The post request is sent to the post URL.
+  * All parameters are encoded into an HTTP POST request and sent to the post URL.
   * If the post fails, the user is returned to the prompt.
 
 Typically, Tattle displays a UI which will, at minimum, allow the user to either send the report or cancel it.  Any fields specified in the configuration will be displayed to the user, their contents submitted
@@ -38,7 +37,7 @@ Typically, Tattle displays a UI which will, at minimum, allow the user to either
 
 ## Configuration (command-line arguments)
 
-Version 0.1 of the tattle command-line interface.  Note that parameters containing an `=` should be supplied as a single string.
+Version 0.3 of the tattle command-line interface.  Note that parameters containing an `=` should be supplied as a single string.
 
 | Flag  | Long Form        | Argument          | Effect |
 |-------|------------------|-------------------|--------|
@@ -58,12 +57,13 @@ Version 0.1 of the tattle command-line interface.  Note that parameters containi
 | `-pm` | `--message`      | `<text>`          | A message appearing at the top of the prompt window. |
 | `-ps` | `--label-send`   | `<text>`          | Label for the 'Send Report' button. |
 | `-pc` | `--label-cancel` | `<text>`          | Label for the 'Don't Send Report' button. |
-| `-pv` | `--label-view`   | `<text>`          | Label for the 'View Report Contents' button. |
+| `-pv` | `--label-view`   | `<text>`          | Label for the 'View Data' button.  (Enable with `-v`) |
 | `-i`  | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with instructive label. |
 | `-im` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
 | `-id` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
 | `-ih` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
-| `-vd` | `--info-dir`     | `<label>=<path>`  | A folder listed in the 'View Report Contents' dialog. |
+| `-v`  | `--view-data`    | _none_            | Enable 'View Data' dialog so users can see report contents. |
+| `-vd` | `--view-dir`     | `<path>`          | A folder linked from the 'View Data' dialog. |
 
 
 ## This implementation
