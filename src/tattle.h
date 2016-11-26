@@ -188,7 +188,8 @@ namespace tattle
 		
 		wxString labelSend, labelCancel, labelView;
 		
-		wxString dirLabel, dirPath;
+		bool     viewEnabled;
+		wxString viewPath;
         
         bool silent;
 		
@@ -251,6 +252,7 @@ namespace tattle
             Ev_Exit = wxID_EXIT,
             Ev_Done = wxID_OK,
             Ev_Open = wxID_OPEN,
+			Ev_Dir  = wxID_VIEW_DETAILS,
         };
         
         ViewReport(wxWindow * parent, wxWindowID id, Report &report);
@@ -259,9 +261,10 @@ namespace tattle
 		static bool Exists();
         
     private:
-        void OnDone (wxCommandEvent & event);
-        void OnOpen (wxCommandEvent & event);
-        void OnClose(wxCloseEvent   & event);
+        void OnDone  (wxCommandEvent & event);
+        void OnOpen  (wxCommandEvent & event);
+		void OnFolder(wxCommandEvent & event);
+        void OnClose (wxCloseEvent   & event);
         
         Report &report;
         

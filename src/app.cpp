@@ -63,7 +63,8 @@ namespace tattle
 
 		//CMD_OPTION_STRINGS("ts", "tech-string",   "<label>:<value>      Technical info string.")
 		//CMD_OPTION_STRINGS("tf", "tech-file",     "<label>:<fname>      Technical info as a linked file.")
-		CMD_OPTION_STRINGS("vd", "info-dir",      "<label>=<path>       Folder listed in 'view data' dialog.")
+		CMD_OPTION_STRINGS("v" , "view-data",     "                     Enable 'view data' dialog.")
+		CMD_OPTION_STRINGS("vd", "view-dir",      "<path>               Folder listed in 'view data' dialog.")
 
 		{wxCMD_LINE_NONE}
 	};
@@ -297,13 +298,11 @@ public:
 			}
 			else if (c0 == 'v')
 			{
+				report.viewEnabled = true;
+				
 				if (c1 == 'd')
 				{
-					wxString label, path;
-					if (!ParsePair(arg.GetStrVal(), label, path)) { err = CMD_ERR_BAD_PAIR; break; }
-					
-					report.dirLabel = label;
-					report.dirPath = path;
+					report.viewPath = arg.GetStrVal();
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}

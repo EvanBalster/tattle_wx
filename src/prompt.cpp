@@ -262,7 +262,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		actionRow->Add(butSubmit, 1, wxEXPAND | wxALL, MARGIN);
 		actionRow->Add(butCancel, 0, wxALL, MARGIN);
 		
-		if (report.labelView.Length())
+		if (report.viewEnabled)
 		{
 			wxButton *butView = new wxButton(this, wxID_VIEW_DETAILS, report.labelView);
 			actionRow->Add(butView, 0, wxALL, MARGIN);

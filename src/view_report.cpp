@@ -23,6 +23,7 @@ using namespace tattle;
 wxBEGIN_EVENT_TABLE(ViewReport, wxDialog)
 	EVT_BUTTON(ViewReport::Ev_Done,  ViewReport::OnDone)
 	EVT_BUTTON(ViewReport::Ev_Open,  ViewReport::OnOpen)
+	EVT_BUTTON(ViewReport::Ev_Dir,   ViewReport::OnFolder)
 	EVT_CLOSE (ViewReport::OnClose)
 wxEND_EVENT_TABLE()
 
@@ -42,6 +43,22 @@ ViewReport::~ViewReport()
 }
 
 
+static void ParamDump(wxString &dump, Report::Parameter *param)
+{
+	// Special handling for fields with newlines
+	if (param->value.find_first_of(wxT("\r\n")) != wxString::npos)
+	{
+		wxString valueIndent = param->value;
+		valueIndent.Replace(wxString("\n"), wxString("\n|\t"));
+		dump += param->name + wxT(":\n|\t") + valueIndent;
+	}
+	else
+	{
+		dump += param->name + wxT(":\t") + param->value;
+	}
+}
+
+
 ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 	: wxDialog(parent, id, wxT("Report Contents"),
 		wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE),
@@ -49,56 +66,92 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 {
 	++ViewReportCount;
 	
-	bool preQueryNote = false;
-	
 	wxBoxSizer *sizerTop = new wxBoxSizer(wxVERTICAL);
 	
 	sizerTop->AddSpacer(MARGIN);
-	
-	// Top label
-	{
-		wxStaticText *messageText = new wxStaticText(this, -1,
-			wxT("This is all the information sent with your report."));
-		
-		sizerTop->Add(messageText, 0, wxALIGN_LEFT | wxALL, MARGIN);
-	}
-	
-	// Horizontal rule
-	sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
 	
 	// List string arguments
 	{
 		wxString argDump;
 		
+		bool preQueryNote = report.queryURL.isSet();
+		
+		bool first = true;
+		
+		if (preQueryNote)
+			for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+		{
+			if (i->type != PARAM_STRING) continue;
+			
+			if (!i->preQuery) continue;
+			
+			if (first)
+			{
+				wxString queryLabel = (report.connectionWarning ?
+					wxT("We tried to send this part early, to check for solutions:") :
+					wxT("We sent this part already, to check for solutions:"));
+					
+				sizerTop->Add(
+					new wxStaticText(this, -1, queryLabel),
+					0, wxALL | wxALIGN_LEFT, MARGIN);
+				
+				first = false;
+			}
+			else argDump += wxT("\n");
+			
+			// Dump normal arguments
+			ParamDump(argDump, &*i);
+		}
+		
+		if (first) preQueryNote = false;
+		else
+		{
+			wxTextCtrl *queryDisplay = new wxTextCtrl(this, -1, argDump,
+				wxDefaultPosition, wxSize(360, 75),
+				wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL, wxDefaultValidator);
+			
+			sizerTop->Add(queryDisplay, 0, wxEXPAND | wxALL, MARGIN);
+			
+			// Horizontal rule
+			sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
+			
+			argDump.Clear();
+		}
+		
+		first = true;
+		
 		for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
 		{
 			if (i->type != PARAM_STRING) continue;
 			
-			if (i->preQuery)
-			{
-				// Tell user which items are included in pre-query
-				argDump += "* ";
-				preQueryNote = true;
-			}
-			else argDump += "  ";
+			if (preQueryNote && i->preQuery) continue;
 			
-			if (i->value.find_first_of(wxT("\r\n")) != wxString::npos)
+			if (first)
 			{
-				argDump += i->name + wxT(":\n")
-					+ i->value + wxT("\n");
+				wxString queryLabel =
+					wxT("This full report is only sent if you choose `")
+					+ report.labelSend + wxT("':");
+					
+				sizerTop->Add(
+					new wxStaticText(this, -1, queryLabel),
+					0, wxALL | wxALIGN_LEFT , MARGIN);
+				
+				first = false;
 			}
-			else
-			{
-				argDump += i->name + wxT(": ")
-					+ i->value + wxT("\n");
-			}
+			else argDump += wxT("\n");
+			
+			// Dump normal arguments
+			ParamDump(argDump, &*i);
 		}
 		
-		wxTextCtrl *argDisplay = new wxTextCtrl(this, -1, argDump,
-			wxDefaultPosition, wxSize(360, 200),
-			wxTE_MULTILINE|wxTE_READONLY, wxDefaultValidator);
-		
-		sizerTop->Add(argDisplay, 0, wxALIGN_LEFT | wxALL, MARGIN);
+		if (!first)
+		{
+			wxTextCtrl *argDisplay = new wxTextCtrl(this, -1, argDump,
+				wxDefaultPosition, wxSize(360, 100),
+				wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL, wxDefaultValidator);
+			
+			sizerTop->Add(argDisplay, 0, wxEXPAND | wxALL, MARGIN);
+		}
 	}
 	
 	// List attached files
@@ -124,13 +177,18 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 			#if wxMAJOR_VERSION >= 3
 				sizerFiles = new wxWrapSizer();
 			#else
-				sizerFiles = new wxFlexGridSizer(4);
+				sizerFiles = new wxFlexGridSizer(3);
 			#endif
+			
+				sizerFiles->Add(
+					new wxStaticText(this, -1,
+					wxT("Attached files:")),
+					0, wxALL | wxALIGN_LEFT, MARGIN);
 			
 				sizerTop->Add(sizerFiles, 0, wxALL | wxALIGN_CENTER, 0);
 			}
 
-			wxButton *button = new wxButton(this, wxID_OPEN, wxT("File: ") + shortName,
+			wxButton *button = new wxButton(this, wxID_OPEN, shortName,
 				wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, i->name);
 			
 			sizerFiles->Add(button, 0, wxALL | wxALIGN_CENTER, MARGIN);
@@ -140,18 +198,21 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 	// Horizontal rule
 	sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
 	
-	if (preQueryNote && report.queryURL.isSet())
 	{
-		wxStaticText *asterisk = new wxStaticText(this, -1,
-			wxT("* These were already used to search for a solution."));
+		wxBoxSizer *actionRow = new wxBoxSizer(wxHORIZONTAL);
 		
-		sizerTop->Add(asterisk, 0, wxALIGN_LEFT | wxALL, MARGIN);
-	}
-	
-	{
 		wxButton *butDone = new wxButton(this, wxID_OK);
+		actionRow->Add(butDone, 0, wxALL, MARGIN);
 		
-		sizerTop->Add(butDone, 0, wxALIGN_CENTER | wxALL, MARGIN);
+		if (report.viewPath.Length())
+		{
+			wxButton *butDir = new wxButton(this, wxID_VIEW_DETAILS, "Data Folder");
+			actionRow->Add(butDir, 0, wxALL, MARGIN);
+		}
+		
+		butDone->SetDefault();
+		
+		sizerTop->Add(actionRow, 0, wxALIGN_CENTER | wxALL);
 	}
 	
 	sizerTop->AddSpacer(MARGIN);
@@ -181,5 +242,15 @@ void ViewReport::OnOpen (wxCommandEvent & event)
 		
 		if (param) wxLaunchDefaultApplication(param->fname);
 	}
+}
+
+void ViewReport::OnFolder(wxCommandEvent & event)
+{
+	wxLaunchDefaultApplication(report.viewPath);
+/*#if __WXMSW__
+	wxExecute( wxT("start \"")+report.viewPath+wxT("\""), wxEXEC_ASYNC, NULL );
+#else
+	wxExecute( wxT("open \"")+report.viewPath+wxT("\""), wxEXEC_ASYNC, NULL );
+#endif*/
 }
 
