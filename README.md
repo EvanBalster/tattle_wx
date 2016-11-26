@@ -1,4 +1,4 @@
-# Tattle wx
+# Tattle/wx
 
 **This is a work in progress and may still be subject to compatibility-breaking changes.**
 
@@ -68,12 +68,14 @@ Version 0.3 of the tattle command-line interface.  Note that parameters containi
 
 ## This implementation
 
-**tattle_wx** is based on the wxWidgets framework, depending on its Core, Base and Net libraries.  This enables portability to Windows, Mac OS X and Linux (and potentially others).  It adheres to the C++98 standard.
+**tattle_wx** is based on the wxWidgets framework.  This enables portability to Windows, Mac OS X and Linux (and potentially others).  It adheres to the C++98 standard.
 
-The author is interested in alternative implementations of this utility, in particular native versions which minimize its footprint and methods of porting it to mobile.
+The author is interested in alternative implementations of this utility, in particular OS-native versions (which could minimize its footprint) and mobile versions.
 
 
-## Building Notes
+## Building Tattle/wx
+
+It should be possible to build Tattle with wxWidgets 2 or 3 and any C++98-compatible compiler, but I have not tested extensively.  It depends on wxWidgets' **core**, **base** and **net** libraries.
 
 Under OSX/Clang with the latest wxWidgets it may be necessary to define FORCE_TR1_TYPE_TRAITS depending on the runtime libraries and flags used to compile wxWidgets and the applications itself.
 
@@ -82,7 +84,7 @@ When development is complete I plan to include precompiled binaries here.
 
 ## Development Notes
 
-Tattle is inspired by the Unity crash reporter and Google Breakpad.  As far as I know it can be used as an uploader in a Breakpad-enabled app (but I haven't tried this yet)
+Tattle is inspired by the Unity crash reporter, Mozilla crash reporter and Google Breakpad.  As far as I know it can be used as an uploader in a Breakpad-enabled app (but I haven't tried this yet)
 
 Things that still need doing:
 
@@ -90,6 +92,7 @@ Things that still need doing:
 
 Things I may investigate in the future:
 
+* An option for parenting the Tattle window to the calling process' window
 * Nicer format for config files
 * Language files for localizing the UI
 * A progress bar for the report upload.
