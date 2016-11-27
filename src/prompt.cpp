@@ -120,7 +120,7 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 			else
 			{
 				wxMessageBox(wxT("The link couldn't be opened for some reason:\n[")+reply.link+wxT("]"), wxT("Failed to open link"),
-					wxOK|wxCENTER | stayOnTopFlag);
+					wxOK|wxCENTER | stayOnTopFlag, parent);
 				wxLaunchDefaultApplication(reply.link);
 			}
 		} 
@@ -131,13 +131,13 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 		if (!title.Length()) title = "Report Sent";
 		if (!msg  .Length()) msg   = "Your report was sent and accepted.";
 		
-		wxMessageBox(msg, title, wxOK|wxCENTER | stayOnTopFlag);
+		wxMessageBox(msg, title, wxOK|wxCENTER | stayOnTopFlag, parent);
 	}
 	
 	if (errorMessage.Length())
 	{
 		wxMessageBox(errorMessage, wxT("Send Failed"),
-			wxICON_ERROR|wxOK|wxCENTER | stayOnTopFlag);
+			wxICON_ERROR|wxOK|wxCENTER | stayOnTopFlag, parent);
 	}
 	
 	return didAction;
