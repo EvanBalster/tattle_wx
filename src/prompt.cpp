@@ -30,7 +30,11 @@ void Prompt::OnDetails(wxCommandEvent & event)
 	{
 		ViewReport *viewReport = new ViewReport(NULL, -1, report);
 		
+		if (report.stayOnTop) Show(0);
+		
 		viewReport->ShowModal();
+		
+		if (report.stayOnTop) Show(1);
 	}
 }
 
@@ -38,7 +42,7 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 {
 	wxString errorMessage;
 	
-	long stayOnTopFlag = (stayOnTop ? wxSTAY_ON_TOP : 0);
+	int stayOnTopFlag = (stayOnTop ? wxSTAY_ON_TOP : 0);
 	
 	bool didAction = false;
 	
@@ -149,7 +153,11 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 	
 	Report::Reply reply = report.httpPost();
 	
+	if (report.stayOnTop) Show(0);
+	
 	DisplayReply(reply, this, report.stayOnTop);
+	
+	if (report.stayOnTop) Show(1);
 	
 	if (reply.valid()) Close();
 }

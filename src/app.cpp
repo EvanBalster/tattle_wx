@@ -490,6 +490,7 @@ bool TattleApp::OnInit()
 		// Give focus to the prompt
 		prompt->SetFocus();
 		prompt->Raise();
+		prompt->Maximize(false);
 		
 		// Continue execution
 		return true;
