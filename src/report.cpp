@@ -23,6 +23,7 @@ Report::Report()
 	labelSend = "Send Report";
 	labelCancel = "Don't Send";
 	labelView = "Details...";
+	stayOnTop = false;
 }
 
 Report::Parameter *Report::findParam(const wxString &name)

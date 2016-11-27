@@ -35,7 +35,8 @@ namespace tattle
 		CMD_OPTION_STRING ("uq", "url-query",     "<url>    HTTP URL for pre-query.")
 
 		CMD_SWITCH        ("s",  "silent",        "Bypass prompt; upload without user input.")
-		//CMD_SWITCH       ("t", "stay-on-top",     "Make the prompt GUI stay on top.")
+		
+		CMD_SWITCH        ("wt", "stay-on-top",   "Make the Tattle GUI stay on top.")
 		//CMD_SWITCH       ("w", "parent-window",   "Make the prompt GUI stay on top.")
 		
 		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more arguments.")
@@ -141,6 +142,14 @@ public:
 			else if (c0 == 's')
 			{
 				report.silent = true;
+			}
+			else if (c0 == 'w')
+			{
+				if (c1 == 't')
+				{
+					report.stayOnTop = true;
+				}
+				else err = CMD_ERR_UNKNOWN;
 			}
 			else if (c0 == 'c')
 			{
@@ -438,7 +447,7 @@ bool TattleApp::OnInit()
 		
 		if (reply.valid())
 		{
-			bool usedLink = Prompt::DisplayReply(reply, 0);
+			bool usedLink = Prompt::DisplayReply(reply, 0, report.stayOnTop);
 			
 			if (reply.command == Report::SC_STOP ||
 				(reply.command == Report::SC_STOP_ON_LINK && usedLink))
@@ -477,6 +486,10 @@ bool TattleApp::OnInit()
 		
 		// Show the dialog, non-modal
 		prompt->Show(true);
+		
+		// Give focus to the prompt
+		prompt->SetFocus();
+		prompt->Raise();
 		
 		// Continue execution
 		return true;

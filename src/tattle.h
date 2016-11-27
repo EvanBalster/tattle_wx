@@ -190,6 +190,8 @@ namespace tattle
 		
 		bool     viewEnabled;
 		wxString viewPath;
+		
+		bool stayOnTop;
         
         bool silent;
 		
@@ -218,7 +220,7 @@ namespace tattle
 			Display a dialog box describing a server's reply.
 				Returns true if the user followed a link.
 		*/
-		static bool DisplayReply(const Report::Reply &reply, wxWindow *parent);
+		static bool DisplayReply(const Report::Reply &reply, wxWindow *parent, bool stayOnTop);
         
     private:
         struct Field

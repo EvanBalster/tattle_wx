@@ -61,7 +61,8 @@ static void ParamDump(wxString &dump, Report::Parameter *param)
 
 ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 	: wxDialog(parent, id, wxT("Report Contents"),
-		wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE),
+		wxDefaultPosition, wxDefaultSize,
+		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
 	report(_report)
 {
 	++ViewReportCount;

@@ -34,9 +34,11 @@ void Prompt::OnDetails(wxCommandEvent & event)
 	}
 }
 
-bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
+bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool stayOnTop)
 {
 	wxString errorMessage;
+	
+	long stayOnTopFlag = (stayOnTop ? wxSTAY_ON_TOP : 0);
 	
 	bool didAction = false;
 	
@@ -101,7 +103,7 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 		msg += wxT("\n\n") + reply.link + wxT("\nOpen in your browser?");
 		
 		wxMessageDialog *offerLink = new wxMessageDialog(parent,
-			msg, title, wxICON_INFORMATION|wxOK|wxCANCEL|wxCENTER);
+			msg, title, wxICON_INFORMATION|wxOK|wxCANCEL|wxCENTER | stayOnTopFlag);
 		
 		offerLink->SetOKLabel(wxT("Open Link"));
 		
@@ -117,7 +119,8 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 			}
 			else
 			{
-				wxMessageBox(wxT("The link couldn't be opened for some reason:\n[")+reply.link+wxT("]"), wxT("Failed to open link"));
+				wxMessageBox(wxT("The link couldn't be opened for some reason:\n[")+reply.link+wxT("]"), wxT("Failed to open link"),
+					wxOK|wxCENTER | stayOnTopFlag);
 				wxLaunchDefaultApplication(reply.link);
 			}
 		} 
@@ -128,12 +131,13 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 		if (!title.Length()) title = "Report Sent";
 		if (!msg  .Length()) msg   = "Your report was sent and accepted.";
 		
-		wxMessageBox(msg, title);
+		wxMessageBox(msg, title, wxOK|wxCENTER | stayOnTopFlag);
 	}
 	
 	if (errorMessage.Length())
 	{
-		wxMessageBox(errorMessage, wxT("Send Failed"), wxICON_ERROR);
+		wxMessageBox(errorMessage, wxT("Send Failed"),
+			wxICON_ERROR|wxOK|wxCENTER | stayOnTopFlag);
 	}
 	
 	return didAction;
@@ -145,7 +149,7 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 	
 	Report::Reply reply = report.httpPost();
 	
-	DisplayReply(reply, this);
+	DisplayReply(reply, this, report.stayOnTop);
 	
 	if (reply.valid()) Close();
 }
@@ -176,7 +180,8 @@ static void ApplyMarkup(wxControl *control, const wxString &markup)
 // Dialog
 Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	: wxDialog(parent, id, _report.promptTitle,
-		wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE),
+		wxDefaultPosition, wxDefaultSize,
+		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
 	report(_report)
 {
 	// Error display ?
