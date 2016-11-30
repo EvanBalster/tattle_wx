@@ -28,13 +28,9 @@ void Prompt::OnDetails(wxCommandEvent & event)
 {
 	if (!ViewReport::Exists())
 	{
-		ViewReport *viewReport = new ViewReport(NULL, -1, report);
+		ViewReport *viewReport = new ViewReport(this, -1, report);
 		
-		if (report.stayOnTop) Show(0);
-		
-		viewReport->ShowModal();
-		
-		if (report.stayOnTop) Show(1);
+		viewReport->Show();
 	}
 }
 
