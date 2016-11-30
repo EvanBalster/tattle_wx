@@ -89,8 +89,8 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 			if (first)
 			{
 				wxString queryLabel = (report.connectionWarning ?
-					wxT("We tried to send this part early, to check for solutions:") :
-					wxT("We sent this part already, to check for solutions:"));
+					wxT("We tried to use this info to check for solutions:") :
+					wxT("We already used this info to check for solutions:"));
 					
 				sizerTop->Add(
 					new wxStaticText(this, -1, queryLabel),
@@ -130,7 +130,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 			if (first)
 			{
 				wxString queryLabel =
-					wxT("This full report is only sent if you choose `")
+					wxT("The full report below is only sent if you choose `")
 					+ report.labelSend + wxT("':");
 					
 				sizerTop->Add(
@@ -223,13 +223,11 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 
 void ViewReport::OnDone (wxCommandEvent & event)
 {
-	EndModal(wxID_OK);
 	Destroy();
 }
 
 void ViewReport::OnClose(wxCloseEvent   & event)
 {
-	EndModal(wxID_EXIT);
 	Destroy();
 }
 
