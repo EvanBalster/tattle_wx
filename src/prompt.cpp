@@ -228,6 +228,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	}
 
 	wxFlexGridSizer *sizerField = NULL;
+	
+	wxTextCtrl *firstField = NULL;
 
 	for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
 		switch (i->type)
@@ -255,6 +257,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 
 			sizerField->Add(label, 0, wxALL | wxALIGN_CENTER_VERTICAL, MARGIN);
 			sizerField->Add(field, 0, wxEXPAND | wxALL, MARGIN);
+			
+			if (!firstField) firstField = field;
 		}
 		break;
 
@@ -271,6 +275,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 
 			sizerTop->Add(label, 0, wxEXPAND | wxALL, MARGIN);
 			sizerTop->Add(field, 0, wxEXPAND | wxALL, MARGIN);
+			
+			if (!firstField) firstField = field;
 		}
 		
 	default:
@@ -312,6 +318,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 
 	// Apply the sizing scheme
 	SetSizerAndFit(sizerTop);
+	
+	if (firstField) firstField->SetFocus();
 }
 
 void Prompt::OnClose(wxCloseEvent &event)
