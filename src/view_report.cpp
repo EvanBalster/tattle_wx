@@ -45,7 +45,7 @@ ViewReport::~ViewReport()
 static void ParamDump(wxString &dump, Report::Parameter *param)
 {
 	// Special handling for fields with newlines
-	if (param->value.length() > 40 || param->value.find_first_of(wxT("\r\n")) != wxString::npos)
+	if (param->value.length() > 35 || param->value.find_first_of(wxT("\r\n")) != wxString::npos)
 	{
 		wxString valueIndent = param->value;
 		valueIndent.Replace(wxString("\n"), wxString("\n| "));
@@ -65,7 +65,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		wxDefaultPosition, wxDefaultSize,
 		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
 	report(_report),
-	fontTechnical(12, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL)
+	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
 	++ViewReportCount;
 	

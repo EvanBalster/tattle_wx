@@ -187,7 +187,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		wxDefaultPosition, wxDefaultSize,
 		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
 	report(_report),
-	fontTechnical(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL)
+	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
 	// Error display ?
 	//wxTextCtrl *displayError 
