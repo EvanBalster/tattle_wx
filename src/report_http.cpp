@@ -178,10 +178,13 @@ Report::Reply Report::httpQuery() const
 {
 	wxHTTP http; http.SetTimeout(5);
 	
-	wxString query = preQueryString();
+	//wxString query = preQueryString();
+	
+	// Add POST data
+	encodePost(http, true);
 	
 	Reply reply;
-	reply.pull(http, queryURL, query);
+	reply.pull(http, queryURL);
 	
 	http.Close();
 	
@@ -193,7 +196,7 @@ Report::Reply Report::httpPost() const
 	wxHTTP http; http.SetTimeout(10);
 	
 	// Add POST data
-	encodePost(http);
+	encodePost(http, false);
 	
 	Reply reply;
 	reply.pull(http, postURL);

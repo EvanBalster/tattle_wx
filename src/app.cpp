@@ -53,9 +53,10 @@ namespace tattle
 
 		CMD_OPTION_STRING ("pt", "title",         "<title>              Title of the prompt window.")
 		CMD_OPTION_STRING ("pm", "message",       "<message>            A header message summarizing the prompt.")
-		CMD_OPTION_STRING ("ps", "label-send",    "<text>               Text of the 'send' button.")
-		CMD_OPTION_STRING ("pc", "label-cancel",  "<text>               Text of the 'cancel' button.")
-		CMD_OPTION_STRING ("pv", "label-view",    "<text>               Text of the 'view data' button.")
+		CMD_OPTION_STRING ("px", "technical",     "<plaintext>          A technical summary message.")
+		CMD_OPTION_STRING ("ps", "label-send",    "<label>              Text of the 'send' button.")
+		CMD_OPTION_STRING ("pc", "label-cancel",  "<label>              Text of the 'cancel' button.")
+		CMD_OPTION_STRING ("pv", "label-view",    "<label>              Text of the 'view data' button.")
 		
 		CMD_OPTION_STRINGS("i",  "field",         "<parameter>=<label>  Single-line field for user input.")
 		CMD_OPTION_STRINGS("im", "field-multi",   "<parameter>=<label>  Multi-line field.")
@@ -257,11 +258,12 @@ public:
 			else if (c0 == 'p')
 			{
 				//Prompt stuff
-				if      (c1 == 't') report.promptTitle   = arg.GetStrVal();
-				else if (c1 == 'm') report.promptMessage = arg.GetStrVal();
-				else if (c1 == 's') report.labelSend     = arg.GetStrVal();
-				else if (c1 == 'c') report.labelCancel   = arg.GetStrVal();
-				else if (c1 == 'v') report.labelView     = arg.GetStrVal();
+				if      (c1 == 't') report.promptTitle     = arg.GetStrVal();
+				else if (c1 == 'm') report.promptMessage   = arg.GetStrVal();
+				else if (c1 == 'x') report.promptTechnical = arg.GetStrVal();
+				else if (c1 == 's') report.labelSend       = arg.GetStrVal();
+				else if (c1 == 'c') report.labelCancel     = arg.GetStrVal();
+				else if (c1 == 'v') report.labelView       = arg.GetStrVal();
 				else err = CMD_ERR_UNKNOWN;
 			}
 			else if (c0 == 'i')

@@ -177,14 +177,15 @@ namespace tattle
 		
         
         // Encode HTTP query and post request
-		wxString preQueryString()            const;
-        void     encodePost(wxHTTP &request) const;
+		wxString preQueryString()                           const;
+        void     encodePost(wxHTTP &request, bool preQuery) const;
         
     public: // members
 		ParsedURL postURL, queryURL;
         
         wxString promptTitle;
         wxString promptMessage;
+		wxString promptTechnical;
 		
 		wxString labelSend, labelCancel, labelView;
 		
@@ -239,6 +240,8 @@ namespace tattle
         
         Report &report;
         Fields  fields;
+		
+		wxFont fontTechnical;
         
         wxDECLARE_EVENT_TABLE();
     };
@@ -269,6 +272,8 @@ namespace tattle
         void OnClose (wxCloseEvent   & event);
         
         Report &report;
+		
+		wxFont fontTechnical;
         
         wxDECLARE_EVENT_TABLE();
     };

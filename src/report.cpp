@@ -114,7 +114,7 @@ void Report::readFiles()
 
 
 
-void Report::encodePost(wxHTTP &http) const
+void Report::encodePost(wxHTTP &http, bool preQuery) const
 {
 	// Boundary with 12-digit random number
 	std::string boundary_id = "tattle-boundary-";
@@ -127,6 +127,12 @@ void Report::encodePost(wxHTTP &http) const
 	
 	for (Parameters::const_iterator i = params.begin(); true; ++i)
 	{
+		if (preQuery && i != params.end())
+		{
+			// Only send strings marked for pre-querying
+			if (!i->preQuery || i->type != PARAM_STRING) continue;
+		}
+	
 		// All items are preceded and succeeded by a boundary.
 		DumpString(postBuffer, boundary_divider);
 	

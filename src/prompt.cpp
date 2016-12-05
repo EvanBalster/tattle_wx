@@ -186,7 +186,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	: wxDialog(parent, id, _report.promptTitle,
 		wxDefaultPosition, wxDefaultSize,
 		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
-	report(_report)
+	report(_report),
+	fontTechnical(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL)
 {
 	// Error display ?
 	//wxTextCtrl *displayError 
@@ -204,8 +205,26 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		
 		sizerTop->Add(messageText, 0, wxALIGN_LEFT | wxALL, MARGIN);
 
-		// Horizontal rule
-		sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
+		// Horizontal rule, if no technical message
+		if (report.promptTechnical.length() == 0)
+			sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
+	}
+	
+	if (report.promptTechnical.length())
+	{
+		wxString technical = report.promptTechnical;
+		technical.Replace(_("<br>"), _("\n"), true);
+	
+		wxTextCtrl *techBox = new wxTextCtrl(this, -1, technical,
+			wxDefaultPosition, wxSize(400, 40),
+			wxTE_MULTILINE|wxTE_READONLY, wxDefaultValidator);
+		
+		techBox->SetFont(fontTechnical);
+		
+		techBox->SetBackgroundStyle( wxBG_STYLE_COLOUR );
+        techBox->SetBackgroundColour( *wxLIGHT_GREY );
+		
+		sizerTop->Add(techBox, 0, wxEXPAND | wxALL, MARGIN);
 	}
 
 	wxFlexGridSizer *sizerField = NULL;
@@ -246,7 +265,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 			wxStaticText *label = new wxStaticText(this, -1, i->label);
 
 			wxTextCtrl *field = new wxTextCtrl(this, -1, i->value,
-				wxDefaultPosition, wxSize(400, 200), wxTE_MULTILINE, wxDefaultValidator, i->name);
+				wxDefaultPosition, wxSize(400, 100), wxTE_MULTILINE, wxDefaultValidator, i->name);
 				
 			Field fieldEntry = {&*i, field}; fields.push_back(fieldEntry);
 

@@ -42,19 +42,20 @@ ViewReport::~ViewReport()
 	--ViewReportCount;
 }
 
-
 static void ParamDump(wxString &dump, Report::Parameter *param)
 {
 	// Special handling for fields with newlines
-	if (param->value.find_first_of(wxT("\r\n")) != wxString::npos)
+	if (param->value.length() > 40 || param->value.find_first_of(wxT("\r\n")) != wxString::npos)
 	{
 		wxString valueIndent = param->value;
-		valueIndent.Replace(wxString("\n"), wxString("\n|\t"));
-		dump += param->name + wxT(":\n|\t") + valueIndent;
+		valueIndent.Replace(wxString("\n"), wxString("\n| "));
+		dump += param->name + wxT(":\n| ") + valueIndent;
 	}
 	else
 	{
-		dump += param->name + wxT(":\t") + param->value;
+		wxString label = param->name+wxT(": ");
+		if (label.length() < 20) label.Append(' ', size_t(20-label.length()));
+		dump += label + param->value;
 	}
 }
 
@@ -63,7 +64,8 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 	: wxDialog(parent, id, wxT("Report Contents"),
 		wxDefaultPosition, wxDefaultSize,
 		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
-	report(_report)
+	report(_report),
+	fontTechnical(12, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL)
 {
 	++ViewReportCount;
 	
@@ -111,6 +113,11 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 				wxDefaultPosition, wxSize(450, 125),
 				wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL, wxDefaultValidator);
 			
+			queryDisplay->SetFont(fontTechnical);
+			
+			//queryDisplay->SetBackgroundStyle( wxBG_STYLE_COLOUR );
+			//queryDisplay->SetBackgroundColour( *wxLIGHT_GREY );
+			
 			sizerTop->Add(queryDisplay, 0, wxEXPAND | wxALL, MARGIN);
 			
 			// Horizontal rule
@@ -150,6 +157,11 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 			wxTextCtrl *argDisplay = new wxTextCtrl(this, -1, argDump,
 				wxDefaultPosition, wxSize(450, 150),
 				wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL, wxDefaultValidator);
+			
+			argDisplay->SetFont(fontTechnical);
+			
+			//argDisplay->SetBackgroundStyle( wxBG_STYLE_COLOUR );
+			//argDisplay->SetBackgroundColour( *wxLIGHT_GREY );
 			
 			sizerTop->Add(argDisplay, 0, wxEXPAND | wxALL, MARGIN);
 		}
