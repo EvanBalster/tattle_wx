@@ -37,6 +37,7 @@ namespace tattle
 		CMD_SWITCH        ("s",  "silent",        "Bypass prompt; upload without user input.")
 		
 		CMD_SWITCH        ("wt", "stay-on-top",   "Make the Tattle GUI stay on top.")
+		CMD_SWITCH        ("wp", "show-progress", "Show progress bar dialogs.")
 		//CMD_SWITCH       ("w", "parent-window",   "Make the prompt GUI stay on top.")
 		
 		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more arguments.")
@@ -149,6 +150,10 @@ public:
 				if (c1 == 't')
 				{
 					report.stayOnTop = true;
+				}
+				else if (c1 == 'p')
+				{
+					report.showProgress = true;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
@@ -394,6 +399,9 @@ public:
 	
 	virtual int OnRun() wxOVERRIDE;
 
+	void PerformQuery();
+	void PerformPost();
+
 private:
 	Report report;
 	
@@ -439,23 +447,29 @@ bool TattleApp::OnInit()
 		<< "  Parameters:" << endl;
 	for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
 		cout << "    - " << i->name << "= `" << i->value << "' Type#" << i->type << endl;
-	
+
+	PerformQuery();
+
+	return true;
+}
+
+void TattleApp::PerformQuery()
+{
 	/*
 		Pre-query step, if applicable
 	*/
 	if (report.queryURL.isSet())
 	{
 		Report::Reply reply = report.httpQuery();
-		
+
 		if (reply.valid())
 		{
 			bool usedLink = Prompt::DisplayReply(reply, 0, report.stayOnTop);
-			
+
 			if (reply.command == Report::SC_STOP ||
 				(reply.command == Report::SC_STOP_ON_LINK && usedLink))
 			{
 				earlyFinish = true;
-				return true;
 			}
 		}
 		else
@@ -465,37 +479,40 @@ bool TattleApp::OnInit()
 	}
 	else if (!report.silent)
 	{
-		if (!report.httpTest(report.postURL))
+		// Probe the server to test the connection
+		if (report.postURL.isSet() && !report.httpTest(report.postURL))
 			report.connectionWarning = true;
 	}
-	
+
+	PerformPost();
+}
+void TattleApp::PerformPost()
+{
+	// Could be query-only...
 	if (!report.postURL.isSet())
 	{
 		// Query only, apparently
+		earlyFinish = true;
 	}
-	if (report.silent)
+	else if (report.silent)
 	{
 		// Fire a POST request and hope for the best
 		report.httpPost();
-		
+
 		earlyFinish = true;
-		return true;
 	}
 	else
 	{
 		// create the main dialog
 		Prompt *prompt = new Prompt(NULL, -1, report);
-		
+
 		// Show the dialog, non-modal
 		prompt->Show(true);
-		
+
 		// Give focus to the prompt
 		prompt->SetFocus();
 		prompt->Raise();
 		prompt->Maximize(false);
-		
-		// Continue execution
-		return true;
 	}
 }
 

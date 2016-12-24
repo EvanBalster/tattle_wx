@@ -53,7 +53,7 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 		
 		if (reply.statusCode == 404)
 		{
-			errorMessage += "(uploader script not found)";
+			errorMessage += "(server script not found)";
 		}
 		else
 		{
@@ -145,6 +145,9 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 
 void Prompt::OnSubmit(wxCommandEvent & event)
 {
+	// Halt user input
+	Enable(false);
+
 	UpdateReportFromFields();
 	
 	Report::Reply reply = report.httpPost();
@@ -153,14 +156,19 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 	
 	DisplayReply(reply, this, report.stayOnTop);
 	
-	if (report.stayOnTop) Show(1);
-	
-	if (reply.valid()) Close();
+	if (reply.valid())
+	{
+		Close();
+	}
+	else if (report.stayOnTop)
+	{
+		Show(1);
+		Enable(true);
+	}
 }
 
 void Prompt::OnCancel(wxCommandEvent & event)
 {
-	//wxMessageBox(_("User canceled the report."));
 	Close(true);
 }
 

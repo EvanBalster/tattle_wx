@@ -10,6 +10,7 @@
 
 #include "tattle.h"
 
+#include <wx/progdlg.h>
 #include <wx/sstream.h>
 #include <wx/uri.h>
 
@@ -117,10 +118,24 @@ void Report::Reply::parseRaw(const ParsedURL &url)
 	}
 }
 
-void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
+void Report::Reply::connect(wxHTTP &http, const ParsedURL &url)
 {
 	connected = http.Connect(url.host, (unsigned short) url.port);
 
+	if (connected)
+	{
+
+	}
+	else
+	{
+		std::cout << "Tattle: failed connection to " << url.host << std::endl;
+		statusCode = 0;
+		error = http.GetError();
+	}
+}
+
+void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
+{
 	if (connected)
 	{
 		std::cout << "Tattle: connected to " << url.host << std::endl;
@@ -174,34 +189,71 @@ void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
 	parseRaw(url);
 }
 
-Report::Reply Report::httpQuery() const
+Report::Reply Report::httpQuery(wxWindow *parent) const
 {
-	wxHTTP http; http.SetTimeout(5);
+	wxHTTP http; http.SetTimeout(6);
 	
 	//wxString query = preQueryString();
+
+	wxProgressDialog *dialog = NULL;
+	if (showProgress)
+	{
+		dialog = new wxProgressDialog("Looking for solutions...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | (stayOnTop ? wxSTAY_ON_TOP : 0));
+		dialog->Show();
+	}
 	
 	// Add POST data
 	encodePost(http, true);
 	
 	Reply reply;
+	if (dialog) dialog->Pulse("Connecting to " + queryURL.host + "...");
+	reply.connect(http, queryURL);
+	wxSleep(2);
+
+	if (dialog) dialog->Pulse("Talking with " + queryURL.host + "...");
 	reply.pull(http, queryURL);
+	wxSleep(1);
 	
 	http.Close();
+
+	if (dialog)
+	{
+		dialog->Show(false);
+		dialog->Destroy();
+	}
 	
 	return reply;
 }
 
-Report::Reply Report::httpPost() const
+Report::Reply Report::httpPost(wxWindow *parent) const
 {
 	wxHTTP http; http.SetTimeout(10);
+
+	wxProgressDialog *dialog = NULL;
+	if (showProgress)
+	{
+		dialog = new wxProgressDialog("Sending...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | (stayOnTop ? wxSTAY_ON_TOP : 0));
+		dialog->Show();
+	}
 	
 	// Add POST data
 	encodePost(http, false);
 	
 	Reply reply;
+	if (dialog) dialog->Pulse("Connecting to " + queryURL.host + "...");
+	reply.connect(http, postURL);
+	wxSleep(1);
+	if (dialog) dialog->Pulse("Sending to" + queryURL.host + "...");
 	reply.pull(http, postURL);
+	wxSleep(1);
 	
 	http.Close();
+
+	if (dialog)
+	{
+		dialog->Show(false);
+		dialog->Destroy();
+	}
 	
 	return reply;
 }

@@ -150,6 +150,7 @@ namespace tattle
 			
 			
 			// Fill in string fields from HTTP request / stream
+			void connect(wxHTTP &http, const ParsedURL &url);
 			void pull(wxHTTP &http, const ParsedURL &url, wxString query = wxT(""));
 			
 			// Assigns title, message and link based on raw reply text
@@ -167,10 +168,10 @@ namespace tattle
 		
 		
 		// Query the server using the query address.
-		Reply httpQuery() const;
+		Reply httpQuery(wxWindow *parent = NULL) const;
 		
 		// Perform HTTP post, returning whether successful.
-		Reply httpPost() const;
+		Reply httpPost(wxWindow *parent = NULL) const;
 		
 		// Test connectivity by making a test connection (but no actual HTTP query)
 		bool  httpTest(const ParsedURL &url) const;
@@ -193,6 +194,7 @@ namespace tattle
 		wxString viewPath;
 		
 		bool stayOnTop;
+		bool showProgress;
         
         bool silent;
 		

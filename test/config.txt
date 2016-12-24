@@ -1,15 +1,18 @@
--up "http://example/report/errors.php"
--uq "http://example/report/error_query.php"
+-up "http://interactopia.com/mothership/error_post.php"
+-uq "http://interactopia.com/mothership/error_query.php"
 
 -aq "app-error-hash=FAKERS"
 
 -pt "Error Report"
--pm "imitone crashed!  Tell us what happened and we'll investigate."
+-pm "The app crashed!  Tell us what happened and we'll investigate."
 
 -ft app-log=log.txt
 -ft app-error=log.txt
 -im "user_desc=Use this space to tell us what happened:"
 -i "user_email=Your E-mail:"
 -ih "user_email=you@example.com (optional)"
+
+-wt
+-wp
 
 -v
