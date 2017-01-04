@@ -36,6 +36,12 @@ namespace tattle
 {
 	using std::cout;
 	using std::endl;
+
+	/*
+		Workflow control calls
+	*/
+	void Tattle_Proceed(bool followedLink = false);
+	void Tattle_Halt();
 	
 	enum PARAM_TYPE
 	{
@@ -161,7 +167,8 @@ namespace tattle
 	public:
 		Report();
 	
-        Parameter *findParam(const wxString &name);
+		Parameter       *findParam(const wxString &name);
+		const Parameter *findParam(const wxString &name) const;
 		
 		// Read file contents into fileContents buffers
 		void readFiles();
@@ -184,24 +191,41 @@ namespace tattle
     public: // members
 		ParsedURL postURL, queryURL;
         
-        wxString promptTitle;
-        wxString promptMessage;
-		wxString promptTechnical;
-		
-		wxString labelSend, labelCancel, labelView;
-		
-		bool     viewEnabled;
 		wxString viewPath;
-		
-		bool stayOnTop;
-		bool showProgress;
-        
-        bool silent;
 		
 		bool connectionWarning;
         
         Parameters params;
     };
+
+	struct UIConfig
+	{
+		UIConfig();
+
+		wxString promptTitle;
+		wxString promptMessage;
+		wxString promptTechnical;
+
+		wxString labelSend, labelCancel, labelView;
+
+		bool viewEnabled;
+		bool stayOnTop;
+		bool showProgress;
+		bool silent;
+
+
+		long style() const
+		{
+			return (stayOnTop ? wxSTAY_ON_TOP : 0);
+		}
+	};
+
+	/*
+		Globally shared report state and UI configuration.
+			Only one report is made per invocation of Tattle.
+	*/
+	extern const Report   &report;
+	extern const UIConfig &uiConfig;
     
     /*
 		A prompt window which allows the user to enter data and submit the report.
@@ -223,7 +247,7 @@ namespace tattle
 			Display a dialog box describing a server's reply.
 				Returns true if the user followed a link.
 		*/
-		static bool DisplayReply(const Report::Reply &reply, wxWindow *parent, bool stayOnTop);
+		static bool DisplayReply(const Report::Reply &reply, wxWindow *parent);
         
     private:
         struct Field
@@ -262,7 +286,7 @@ namespace tattle
 			Ev_Dir  = wxID_VIEW_DETAILS,
         };
         
-        ViewReport(wxWindow * parent, wxWindowID id, Report &report);
+        ViewReport(wxWindow * parent, wxWindowID id);
 		virtual ~ViewReport();
 		
 		static bool Exists();
@@ -272,8 +296,6 @@ namespace tattle
         void OnOpen  (wxCommandEvent & event);
 		void OnFolder(wxCommandEvent & event);
         void OnClose (wxCloseEvent   & event);
-        
-        Report &report;
 		
 		wxFont fontTechnical;
         

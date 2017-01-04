@@ -42,7 +42,7 @@ ViewReport::~ViewReport()
 	--ViewReportCount;
 }
 
-static void ParamDump(wxString &dump, Report::Parameter *param)
+static void ParamDump(wxString &dump, const Report::Parameter *param)
 {
 	// Special handling for fields with newlines
 	if (param->value.length() > 35 || param->value.find_first_of(wxT("\r\n")) != wxString::npos)
@@ -60,11 +60,10 @@ static void ParamDump(wxString &dump, Report::Parameter *param)
 }
 
 
-ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
+ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 	: wxDialog(parent, id, wxT("Report Contents"),
 		wxDefaultPosition, wxDefaultSize,
-		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
-	report(_report),
+		wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
 	++ViewReportCount;
@@ -82,7 +81,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		bool first = true;
 		
 		if (preQueryNote)
-			for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+			for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		{
 			if (i->type != PARAM_STRING) continue;
 			
@@ -128,7 +127,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		
 		first = true;
 		
-		for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+		for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		{
 			if (i->type != PARAM_STRING) continue;
 			
@@ -138,7 +137,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 			{
 				wxString queryLabel =
 					wxT("The full report below is only sent if you choose `")
-					+ report.labelSend + wxT("':");
+					+ uiConfig.labelSend + wxT("':");
 					
 				sizerTop->Add(
 					new wxStaticText(this, -1, queryLabel),
@@ -175,7 +174,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		wxFlexGridSizer *sizerFiles = NULL;
 	#endif
 		
-		for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+		for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		{
 			if (i->type != PARAM_FILE_TEXT && i->type != PARAM_FILE_BIN) continue;
 			
@@ -249,7 +248,7 @@ void ViewReport::OnOpen (wxCommandEvent & event)
 	
 	if (window)
 	{
-		Report::Parameter *param = report.findParam(window->GetName());
+		const Report::Parameter *param = report.findParam(window->GetName());
 		
 		if (param) wxLaunchDefaultApplication(param->fname);
 	}

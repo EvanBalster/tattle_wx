@@ -71,9 +71,29 @@ namespace tattle
 
 		{wxCMD_LINE_NONE}
 	};
+
+	class TattleApp;
 }
 
 using namespace tattle;
+
+static Report   report_;
+static UIConfig uiConfig_;
+
+const Report   &tattle::report   = report_;
+const UIConfig &tattle::uiConfig = uiConfig_;
+
+UIConfig::UIConfig()
+{
+	silent = false;
+	labelSend = "Send Report";
+	labelCancel = "Don't Send";
+	labelView = "Details...";
+	stayOnTop = false;
+	showProgress = false;
+}
+
+static TattleApp *tattleApp = NULL;
 
 // Main application object.
 class tattle::TattleApp : public wxApp
@@ -133,27 +153,27 @@ public:
 				*/
 				if (c1 == 'p')
 				{
-					if (!report.postURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
+					if (!report_.postURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
 				}
 				else if (c1 == 'q')
 				{
-					if (!report.queryURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
+					if (!report_.queryURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
 			else if (c0 == 's')
 			{
-				report.silent = true;
+				uiConfig_.silent = true;
 			}
 			else if (c0 == 'w')
 			{
 				if (c1 == 't')
 				{
-					report.stayOnTop = true;
+					uiConfig_.stayOnTop = true;
 				}
 				else if (c1 == 'p')
 				{
-					report.showProgress = true;
+					uiConfig_.showProgress = true;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
@@ -186,14 +206,14 @@ public:
 				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 
 				//Parameter must not exist.
-				if (report.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
+				if (report_.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
 
 				Report::Parameter param;
 				param.type = PARAM_STRING;
 				param.name = name;
 				param.value = value;
 				param.preQuery = (c1 == 'q');
-				report.params.push_back(param);
+				report_.params.push_back(param);
 			}
 			else if (c0 == 'f')
 			{
@@ -202,7 +222,7 @@ public:
 				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 
 				//Parameter must not exist.
-				if (report.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
+				if (report_.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
 					
 				Report::Parameter param;
 				if      (c1 == 't') {param.type = PARAM_FILE_TEXT; param.fname = value;}
@@ -230,7 +250,7 @@ public:
 				}
 				else err = CMD_ERR_FAILED_TO_OPEN_FILE;
 				
-				report.params.push_back(param);
+				report_.params.push_back(param);
 			}
 			else if (c0 == 't')
 			{
@@ -239,7 +259,7 @@ public:
 				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 				
 				//Parameter must exist and must be a file
-				Report::Parameter *param = report.findParam(name);
+				Report::Parameter *param = report_.findParam(name);
 				if (param == NULL)
 					{ err = CMD_ERR_PARAM_MISSING; break; }
 				if (param->type != PARAM_FILE_BIN && param->type != PARAM_FILE_TEXT)
@@ -263,12 +283,12 @@ public:
 			else if (c0 == 'p')
 			{
 				//Prompt stuff
-				if      (c1 == 't') report.promptTitle     = arg.GetStrVal();
-				else if (c1 == 'm') report.promptMessage   = arg.GetStrVal();
-				else if (c1 == 'x') report.promptTechnical = arg.GetStrVal();
-				else if (c1 == 's') report.labelSend       = arg.GetStrVal();
-				else if (c1 == 'c') report.labelCancel     = arg.GetStrVal();
-				else if (c1 == 'v') report.labelView       = arg.GetStrVal();
+				if      (c1 == 't') uiConfig_.promptTitle     = arg.GetStrVal();
+				else if (c1 == 'm') uiConfig_.promptMessage = arg.GetStrVal();
+				else if (c1 == 'x') uiConfig_.promptTechnical = arg.GetStrVal();
+				else if (c1 == 's') uiConfig_.labelSend = arg.GetStrVal();
+				else if (c1 == 'c') uiConfig_.labelCancel = arg.GetStrVal();
+				else if (c1 == 'v') uiConfig_.labelView = arg.GetStrVal();
 				else err = CMD_ERR_UNKNOWN;
 			}
 			else if (c0 == 'i')
@@ -279,14 +299,14 @@ public:
 					if (!ParsePair(arg.GetStrVal(), name, label)) { err = CMD_ERR_BAD_PAIR; break; }
 
 					//Parameter must not exist.
-					if (report.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
+					if (report_.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
 
 					Report::Parameter param;
 					param.name = name;
 					param.label = label;
 					if (c1 == '\0')      param.type = PARAM_FIELD;
 					else if (c1 == 'm') param.type = PARAM_FIELD_MULTI;
-					report.params.push_back(param);
+					report_.params.push_back(param);
 				}
 				else if (c1 == 'h' || c1 == 'd')
 				{
@@ -294,7 +314,7 @@ public:
 					if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 
 					// Value must exist
-					Report::Parameter *param = report.findParam(name);
+					Report::Parameter *param = report_.findParam(name);
 					if (param == NULL) { err = CMD_ERR_PARAM_MISSING; break; }
 
 					if (c1 == 'h')
@@ -316,11 +336,11 @@ public:
 			{
 				if (c1 == '\0')
 				{
-					report.viewEnabled = true;
+					uiConfig_.viewEnabled = true;
 				}
 				if (c1 == 'd')
 				{
-					report.viewPath = arg.GetStrVal();
+					report_.viewPath = arg.GetStrVal();
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
@@ -392,6 +412,14 @@ public:
 		return success;
 	}
 
+	void Proceed(bool followedLink)
+	{
+	}
+
+	void Halt()
+	{
+	}
+
 	// this one is called on application startup and is a good place for the app
 	// initialization (doing it here and not in the ctor allows to have an error
 	// return: if OnInit() returns false, the application terminates)
@@ -403,8 +431,6 @@ public:
 	void PerformPost();
 
 private:
-	Report report;
-	
 	bool earlyFinish;
 };
 
@@ -418,6 +444,8 @@ bool TattleApp::OnInit()
 	// few common command-line options but it could be do more in the future
 	if (!wxApp::OnInit())
 		return false;
+
+	tattleApp = this;
 		
 	bool badCmdLine = false;
 		
@@ -439,13 +467,13 @@ bool TattleApp::OnInit()
 		return false;
 	}
 	
-	report.readFiles();
+	report_.readFiles();
 
 	// Debug
 	cout << "Successful init." << endl
 		<< "  URL: http://" << report.postURL.host << report.postURL.path << endl
 		<< "  Parameters:" << endl;
-	for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+	for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		cout << "    - " << i->name << "= `" << i->value << "' Type#" << i->type << endl;
 
 	PerformQuery();
@@ -464,7 +492,7 @@ void TattleApp::PerformQuery()
 
 		if (reply.valid())
 		{
-			bool usedLink = Prompt::DisplayReply(reply, 0, report.stayOnTop);
+			bool usedLink = Prompt::DisplayReply(reply, 0);
 
 			if (reply.command == Report::SC_STOP ||
 				(reply.command == Report::SC_STOP_ON_LINK && usedLink))
@@ -474,14 +502,14 @@ void TattleApp::PerformQuery()
 		}
 		else
 		{
-			report.connectionWarning = true;
+			report_.connectionWarning = true;
 		}
 	}
-	else if (!report.silent)
+	else if (!uiConfig.silent)
 	{
 		// Probe the server to test the connection
 		if (report.postURL.isSet() && !report.httpTest(report.postURL))
-			report.connectionWarning = true;
+			report_.connectionWarning = true;
 	}
 
 	PerformPost();
@@ -494,7 +522,7 @@ void TattleApp::PerformPost()
 		// Query only, apparently
 		earlyFinish = true;
 	}
-	else if (report.silent)
+	else if (uiConfig.silent)
 	{
 		// Fire a POST request and hope for the best
 		report.httpPost();
@@ -504,7 +532,7 @@ void TattleApp::PerformPost()
 	else
 	{
 		// create the main dialog
-		Prompt *prompt = new Prompt(NULL, -1, report);
+		Prompt *prompt = new Prompt(NULL, -1, report_);
 
 		// Show the dialog, non-modal
 		prompt->Show(true);
@@ -516,6 +544,11 @@ void TattleApp::PerformPost()
 	}
 }
 
+/*int TattleApp::OnIdle()
+{
+	//
+}*/
+
 int TattleApp::OnRun()
 {
 	if (earlyFinish)
@@ -525,6 +558,15 @@ int TattleApp::OnRun()
 	}
 	
 	return wxApp::OnRun();
+}
+
+void tattle::Tattle_Proceed(bool followedLink)
+{
+	tattleApp->Proceed(followedLink);
+}
+void tattle::Tattle_Halt()
+{
+	tattleApp->Halt();
 }
 
 // the application icon (under Windows it is in resources and even

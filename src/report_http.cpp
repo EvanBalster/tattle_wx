@@ -196,9 +196,9 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 	//wxString query = preQueryString();
 
 	wxProgressDialog *dialog = NULL;
-	if (showProgress)
+	if (uiConfig.showProgress)
 	{
-		dialog = new wxProgressDialog("Looking for solutions...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | (stayOnTop ? wxSTAY_ON_TOP : 0));
+		dialog = new wxProgressDialog("Looking for solutions...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 		dialog->Show();
 	}
 	
@@ -230,9 +230,9 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 	wxHTTP http; http.SetTimeout(10);
 
 	wxProgressDialog *dialog = NULL;
-	if (showProgress)
+	if (uiConfig.showProgress)
 	{
-		dialog = new wxProgressDialog("Sending...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | (stayOnTop ? wxSTAY_ON_TOP : 0));
+		dialog = new wxProgressDialog("Sending...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 		dialog->Show();
 	}
 	

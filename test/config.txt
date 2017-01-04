@@ -2,6 +2,7 @@
 -uq "http://interactopia.com/mothership/error_query.php"
 
 -aq "app-error-hash=FAKERS"
+-a  "app-time-local=NOW"
 
 -pt "Error Report"
 -pm "The app crashed!  Tell us what happened and we'll investigate."
