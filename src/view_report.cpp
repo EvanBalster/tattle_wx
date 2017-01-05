@@ -27,8 +27,6 @@ wxBEGIN_EVENT_TABLE(ViewReport, wxDialog)
 	EVT_CLOSE (ViewReport::OnClose)
 wxEND_EVENT_TABLE()
 
-static const unsigned MARGIN = 5;
-
 
 static int ViewReportCount = 0;
 
@@ -66,6 +64,8 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
+	const unsigned MARGIN = uiConfig.margin;
+
 	++ViewReportCount;
 	
 	wxBoxSizer *sizerTop = new wxBoxSizer(wxVERTICAL);

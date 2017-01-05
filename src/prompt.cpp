@@ -39,29 +39,35 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 	// Halt user input
 	Enable(false);
 
+	// Upload user field values
 	UpdateReportFromFields();
 	
-	Report::Reply reply = report.httpPost();
-	
-	if (uiConfig.stayOnTop) Show(0);
-	
-	DisplayReply(reply, this);
+	Report::Reply reply = report.httpPost(this);
 	
 	if (reply.valid())
 	{
-		Close();
+		// Show reply dialog and destroy the prompt
+		Tattle_InsertDialog(DisplayReply(reply, this));
+		Destroy();
 	}
-	else if (uiConfig.stayOnTop)
+	else
 	{
-		// Unhide the prompt
-		Show(1);
-		Enable(true);
+		// ...Should really insert an error message here, but it doesn't jive with the workflow
 	}
 }
 
 void Prompt::OnCancel(wxCommandEvent & event)
 {
 	Close(true);
+}
+
+void Prompt::OnClose(wxCloseEvent &event)
+{
+	// TODO consider veto appeal
+
+	Tattle_Halt();
+
+	Destroy();
 }
 
 void Prompt::UpdateReportFromFields()
@@ -71,8 +77,6 @@ void Prompt::UpdateReportFromFields()
 		i->param->value = i->control->GetValue();
 	}
 }
-
-static const unsigned MARGIN = 5;
 
 static void ApplyMarkup(wxControl *control, const wxString &markup)
 {
@@ -89,6 +93,8 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	report(_report),
 	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
+	const unsigned MARGIN = uiConfig.margin;
+
 	// Error display ?
 	//wxTextCtrl *displayError 
 
@@ -220,10 +226,4 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	SetSizerAndFit(sizerTop);
 	
 	if (firstField) firstField->SetFocus();
-}
-
-void Prompt::OnClose(wxCloseEvent &event)
-{
-	// TODO consider veto
-	Destroy();
 }

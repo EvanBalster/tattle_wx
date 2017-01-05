@@ -40,7 +40,8 @@ namespace tattle
 	/*
 		Workflow control calls
 	*/
-	void Tattle_Proceed(bool followedLink = false);
+	void Tattle_Proceed();
+	void Tattle_InsertDialog(wxWindow *dialog);
 	void Tattle_Halt();
 	
 	enum PARAM_TYPE
@@ -213,6 +214,8 @@ namespace tattle
 		bool showProgress;
 		bool silent;
 
+		unsigned margin; // defaults to 5
+
 
 		long style() const
 		{
@@ -244,10 +247,10 @@ namespace tattle
         Prompt(wxWindow * parent, wxWindowID id, Report &report);
 		
 		/*
-			Display a dialog box describing a server's reply.
+			Create a dialog box describing a server's reply.
 				Returns true if the user followed a link.
 		*/
-		static bool DisplayReply(const Report::Reply &reply, wxWindow *parent);
+		static wxWindow *DisplayReply(const Report::Reply &reply, wxWindow *parent = NULL);
         
     private:
         struct Field
@@ -301,6 +304,52 @@ namespace tattle
         
         wxDECLARE_EVENT_TABLE();
     };
+
+	/*
+		Non-modal Dialogs integrated with Tattle's workflow.
+			May be "OK" or "Open Link / Cancel" dialogs.
+	*/
+	class InfoDialog : public wxDialog
+	{
+	public:
+		/*
+			Create a Tattle dialog.
+				- Specified title and message, with "OK" button
+				- Optionally specify a link
+				- Uses styling from uiConfig
+				- Calls Tattle_Proceed / Tattle_Halt when done, depending on server command:
+					- PROMPT:       always proceed
+					- STOP:         always halt
+					- STOP_ON_LINK: halt when following link, else proceed
+		*/
+		InfoDialog(wxWindow *parent,
+			wxString title,
+			wxString message,
+			wxString link = wxString(),
+			Report::SERVER_COMMAND command = Report::SC_PROMPT);
+
+	protected:
+		void Done();
+
+		void OpenLink();
+
+		void OnOk(wxCommandEvent &evt);
+		void OnOpen(wxCommandEvent &evt);
+		void OnCancel(wxCommandEvent &evt);
+
+		void OnClose(wxCloseEvent &evt);
+
+		wxDECLARE_EVENT_TABLE();
+
+	protected:
+		Report::SERVER_COMMAND command;
+
+		wxString link;
+		int      styleBase;
+
+		bool     didAction;
+		bool     overrideCommand;
+	};
 	
 	// Utility functions
 	wxString GetTagContents(const wxString &reply, const wxString &tagName);

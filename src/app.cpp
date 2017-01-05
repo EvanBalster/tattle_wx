@@ -91,6 +91,7 @@ UIConfig::UIConfig()
 	labelView = "Details...";
 	stayOnTop = false;
 	showProgress = false;
+	margin = 8;
 }
 
 static TattleApp *tattleApp = NULL;
@@ -412,12 +413,110 @@ public:
 		return success;
 	}
 
-	void Proceed(bool followedLink)
+	enum RUN_STAGE
 	{
+		RS_START = 0,
+		RS_QUERY,
+		RS_PROMPT,
+		RS_POST,
+		RS_DONE,
+	};
+
+	void ToggleIdleHandler(bool active)
+	{
+		if (idleHandler == active) return;
+		idleHandler = active;
+		if (active) Connect(wxID_ANY, wxEVT_IDLE, wxIdleEventHandler(TattleApp::OnIdle));
+		else        Disconnect(wxEVT_IDLE, wxIdleEventHandler(TattleApp::OnIdle));
+	}
+
+	/*
+		This is a crude coroutine describing the workflow of a Tattle execution.
+			It is called once on initialization, and again whenever a dialog completes.
+			It executes until another dialog is created or the program completes.
+
+	*/
+	void Proceed()
+	{
+		// Make sure this doesn't carry over...
+		pendingWindow = NULL;
+
+		// Proceed
+		switch (stage)
+		{
+		case RS_START:
+			stage = RS_QUERY;
+			PerformQuery();
+			if (pendingWindow) break;
+
+		case RS_QUERY:
+			stage = RS_PROMPT;
+			PerformPrompt();
+			if (pendingWindow) break;
+
+		case RS_PROMPT:
+			stage = RS_POST;
+			PerformPost();
+			if (pendingWindow) break;
+
+		case RS_POST:
+			stage = RS_DONE;
+
+		case RS_DONE:
+			stage = RS_DONE;
+			dummyDialog->Destroy();
+			dummyDialog = NULL;
+			break;
+		}
+
+		// Show any pending window
+		if (pendingWindow)
+		{
+			anyWindows = true;
+			pendingWindow->Show();
+			pendingWindow = NULL;
+		}
+
+		// Register the idle handler to start the next task
+		ToggleIdleHandler(true);
+	}
+
+	void InsertDialog(wxWindow *dialog)
+	{
+		pendingWindow = dialog;
+
+		ToggleIdleHandler(true);
 	}
 
 	void Halt()
 	{
+		stage = RS_DONE;
+
+		// Register the idle handler to start the next task
+		ToggleIdleHandler(true);
+	}
+
+	void OnIdle(wxIdleEvent &event)
+	{
+		// Unregister this handler
+		ToggleIdleHandler(false);
+
+		if (stage == RS_DONE)
+		{
+			// Hmm
+			if (uiConfig.silent) wxExit();
+		}
+
+		/*switch (stage)
+		{
+		case RS_START:
+		case RS_QUERY:
+			//Proceed();
+			break;
+
+		case RS_DONE:
+			break;
+		}*/
 	}
 
 	// this one is called on application startup and is a good place for the app
@@ -428,15 +527,23 @@ public:
 	virtual int OnRun() wxOVERRIDE;
 
 	void PerformQuery();
+	void PerformPrompt();
 	void PerformPost();
 
 private:
-	bool earlyFinish;
+	RUN_STAGE stage;
+
+	wxWindow *pendingWindow;
+
+	wxMessageDialog *dummyDialog;
+
+	bool idleHandler;
+	bool anyWindows;
 };
 
 bool TattleApp::OnInit()
 {
-	earlyFinish = false;
+	anyWindows = false;
 	
 	//cout << "Reading command line..." << endl;
 
@@ -446,6 +553,9 @@ bool TattleApp::OnInit()
 		return false;
 
 	tattleApp = this;
+	stage = RS_START;
+	pendingWindow = NULL;
+	dummyDialog = NULL;
 		
 	bool badCmdLine = false;
 		
@@ -476,7 +586,7 @@ bool TattleApp::OnInit()
 	for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		cout << "    - " << i->name << "= `" << i->value << "' Type#" << i->type << endl;
 
-	PerformQuery();
+	Proceed();
 
 	return true;
 }
@@ -490,18 +600,14 @@ void TattleApp::PerformQuery()
 	{
 		Report::Reply reply = report.httpQuery();
 
-		if (reply.valid())
+		if (reply.valid() && !uiConfig.silent)
 		{
-			bool usedLink = Prompt::DisplayReply(reply, 0);
-
-			if (reply.command == Report::SC_STOP ||
-				(reply.command == Report::SC_STOP_ON_LINK && usedLink))
-			{
-				earlyFinish = true;
-			}
+			// Queue up the prompt window
+			pendingWindow = Prompt::DisplayReply(reply);
 		}
 		else
 		{
+			// Flag for a connection warning.
 			report_.connectionWarning = true;
 		}
 	}
@@ -511,36 +617,32 @@ void TattleApp::PerformQuery()
 		if (report.postURL.isSet() && !report.httpTest(report.postURL))
 			report_.connectionWarning = true;
 	}
-
-	PerformPost();
+}
+void TattleApp::PerformPrompt()
+{
+	// Skip if no post or running silently
+	if (report.postURL.isSet() && !uiConfig.silent)
+	{
+		// Set up the prompt window for display
+		pendingWindow = new Prompt(NULL, -1, report_);
+	}
 }
 void TattleApp::PerformPost()
 {
 	// Could be query-only...
-	if (!report.postURL.isSet())
-	{
-		// Query only, apparently
-		earlyFinish = true;
-	}
-	else if (uiConfig.silent)
-	{
-		// Fire a POST request and hope for the best
-		report.httpPost();
+	if (!report.postURL.isSet()) return;
+	
+	Report::Reply reply = report.httpPost();
 
-		earlyFinish = true;
+	if (reply.valid() && !uiConfig.silent)
+	{
+		// Queue up the prompt window
+		pendingWindow = Prompt::DisplayReply(reply);
 	}
 	else
 	{
-		// create the main dialog
-		Prompt *prompt = new Prompt(NULL, -1, report_);
-
-		// Show the dialog, non-modal
-		prompt->Show(true);
-
-		// Give focus to the prompt
-		prompt->SetFocus();
-		prompt->Raise();
-		prompt->Maximize(false);
+		// Flag for a connection warning.
+		report_.connectionWarning = true;
 	}
 }
 
@@ -551,7 +653,7 @@ void TattleApp::PerformPost()
 
 int TattleApp::OnRun()
 {
-	if (earlyFinish)
+	if (!anyWindows)
 	{
 		ExitMainLoop();
 		return 0;
@@ -560,9 +662,13 @@ int TattleApp::OnRun()
 	return wxApp::OnRun();
 }
 
-void tattle::Tattle_Proceed(bool followedLink)
+void tattle::Tattle_Proceed()
 {
-	tattleApp->Proceed(followedLink);
+	tattleApp->Proceed();
+}
+void tattle::Tattle_InsertDialog(wxWindow *dialog)
+{
+	tattleApp->InsertDialog(dialog);
 }
 void tattle::Tattle_Halt()
 {
