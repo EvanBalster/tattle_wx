@@ -198,7 +198,7 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 	wxProgressDialog *dialog = NULL;
 	if (uiConfig.showProgress)
 	{
-		dialog = new wxProgressDialog("Looking for solutions...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
+		dialog = new wxProgressDialog("Looking for solutions...", "Preparing...", 6, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 		dialog->Show();
 	}
 	
@@ -206,13 +206,17 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 	encodePost(http, true);
 	
 	Reply reply;
-	if (dialog) dialog->Pulse("Connecting to " + queryURL.host + "...");
+	if (dialog) dialog->Update(1, "Connecting to " + queryURL.host + "...");
+	wxYield();
 	reply.connect(http, queryURL);
 	wxSleep(2);
 
-	if (dialog) dialog->Pulse("Talking with " + queryURL.host + "...");
+	if (dialog) dialog->Update(3, "Talking with " + queryURL.host + "...");
+	wxYield();
 	reply.pull(http, queryURL);
 	wxSleep(1);
+	
+	if (dialog) dialog->Update(6, "Finishing up...");
 	
 	http.Close();
 
@@ -232,7 +236,7 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 	wxProgressDialog *dialog = NULL;
 	if (uiConfig.showProgress)
 	{
-		dialog = new wxProgressDialog("Sending...", "Preparing...", -1, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
+		dialog = new wxProgressDialog("Sending...", "Preparing Report...", 6, parent, wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 		dialog->Show();
 	}
 	
@@ -240,12 +244,16 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 	encodePost(http, false);
 	
 	Reply reply;
-	if (dialog) dialog->Pulse("Connecting to " + queryURL.host + "...");
+	if (dialog) dialog->Update(1, "Connecting to " + queryURL.host + "...");
+	wxYield();
 	reply.connect(http, postURL);
 	wxSleep(1);
-	if (dialog) dialog->Pulse("Sending to" + queryURL.host + "...");
+	if (dialog) dialog->Update(3, "Sending to" + queryURL.host + "...");
+	wxYield();
 	reply.pull(http, postURL);
 	wxSleep(1);
+	
+	if (dialog) dialog->Update(6, "Finishing up...");
 	
 	http.Close();
 
