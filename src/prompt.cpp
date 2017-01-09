@@ -22,6 +22,7 @@ wxBEGIN_EVENT_TABLE(Prompt, wxDialog)
 	EVT_BUTTON(Prompt::Ev_Cancel,  Prompt::OnCancel)
 	EVT_BUTTON(Prompt::Ev_Details, Prompt::OnDetails)
 	EVT_CLOSE (Prompt::OnClose)
+	EVT_SHOW  (Prompt::OnShow)
 wxEND_EVENT_TABLE()
 
 void Prompt::OnDetails(wxCommandEvent & event)
@@ -70,6 +71,18 @@ void Prompt::OnClose(wxCloseEvent &event)
 	Destroy();
 }
 
+void Prompt::OnShow(wxShowEvent & event)
+{
+	if (!event.IsShown())
+	{
+		printf("Hidden");
+	}
+	else
+	{
+		printf("Shown");
+	}
+}
+
 void Prompt::UpdateReportFromFields()
 {
 	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
@@ -93,7 +106,10 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	report(_report),
 	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
-	const unsigned MARGIN = uiConfig.margin;
+	SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
+
+
+	const unsigned MARGIN = uiConfig.marginMd;
 
 	// Error display ?
 	//wxTextCtrl *displayError 
@@ -226,4 +242,12 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	SetSizerAndFit(sizerTop);
 	
 	if (firstField) firstField->SetFocus();
+
+	Center(wxBOTH);
 }
+
+Prompt::~Prompt()
+{
+	int i = 5;
+}
+

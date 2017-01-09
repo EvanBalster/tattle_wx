@@ -64,7 +64,9 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
-	const unsigned MARGIN = uiConfig.margin;
+	SetIcon(wxArtProvider::GetIcon(wxART_INFORMATION));
+
+	const unsigned MARGIN = uiConfig.marginMd;
 
 	++ViewReportCount;
 	
@@ -230,6 +232,8 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 	sizerTop->AddSpacer(MARGIN);
 
 	SetSizerAndFit(sizerTop);
+
+	//Center(wxBOTH);
 }
 
 void ViewReport::OnDone (wxCommandEvent & event)

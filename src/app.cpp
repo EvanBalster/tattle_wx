@@ -38,6 +38,7 @@ namespace tattle
 		
 		CMD_SWITCH        ("wt", "stay-on-top",   "Make the Tattle GUI stay on top.")
 		CMD_SWITCH        ("wp", "show-progress", "Show progress bar dialogs.")
+		CMD_OPTION_STRING ("wi", "icon",          "Set a standard icon: information, warning or error.")
 		//CMD_SWITCH       ("w", "parent-window",   "Make the prompt GUI stay on top.")
 		
 		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more arguments.")
@@ -91,7 +92,21 @@ UIConfig::UIConfig()
 	labelView = "Details...";
 	stayOnTop = false;
 	showProgress = false;
-	margin = 8;
+	marginSm = 5;
+	marginMd = 8;
+	marginLg = 10;
+}
+
+wxArtID UIConfig::GetIconID(wxString tattleName) const
+{
+	if (tattleName == "information") return wxART_INFORMATION;
+	if (tattleName == "info")        return wxART_INFORMATION;
+	if (tattleName == "warning")     return wxART_WARNING;
+	if (tattleName == "error")       return wxART_ERROR;
+	if (tattleName == "question")    return wxART_QUESTION;
+	if (tattleName == "help")        return wxART_HELP;
+	if (tattleName == "tip")         return wxART_TIP;
+	return "";
 }
 
 static TattleApp *tattleApp = NULL;
@@ -175,6 +190,12 @@ public:
 				else if (c1 == 'p')
 				{
 					uiConfig_.showProgress = true;
+				}
+				else if (c1 == 'i')
+				{
+					wxArtID id = uiConfig.GetIconID(arg.GetStrVal());
+					if (id.length()) uiConfig_.defaultIcon = id;
+					else err = CMD_ERR_PARAM_NOT_APPLICABLE;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
@@ -474,7 +495,7 @@ public:
 		{
 			anyWindows = true;
 			pendingWindow->Show();
-			pendingWindow = NULL;
+			//pendingWindow = NULL;
 		}
 
 		// Register the idle handler to start the next task
@@ -484,6 +505,13 @@ public:
 	void InsertDialog(wxWindow *dialog)
 	{
 		pendingWindow = dialog;
+
+		ToggleIdleHandler(true);
+	}
+
+	void DisposeDialog(wxWindow *dialog)
+	{
+		disposeWindow = dialog;
 
 		ToggleIdleHandler(true);
 	}
@@ -498,13 +526,26 @@ public:
 
 	void OnIdle(wxIdleEvent &event)
 	{
+		if (disposeWindow)
+		{
+			disposeWindow->Destroy();
+			disposeWindow = NULL;
+			return;
+		}
+
+		if (pendingWindow)
+		{
+			pendingWindow->Show();
+			pendingWindow = NULL;
+		}
+
 		// Unregister this handler
 		ToggleIdleHandler(false);
 
 		if (stage == RS_DONE)
 		{
 			// Hmm
-			if (uiConfig.silent) wxExit();
+			//if (uiConfig.silent) wxExit();
 		}
 
 		/*switch (stage)
@@ -523,6 +564,8 @@ public:
 	// initialization (doing it here and not in the ctor allows to have an error
 	// return: if OnInit() returns false, the application terminates)
 	virtual bool OnInit() wxOVERRIDE;
+
+	virtual int OnExit() wxOVERRIDE;
 	
 	virtual int OnRun() wxOVERRIDE;
 
@@ -533,7 +576,7 @@ public:
 private:
 	RUN_STAGE stage;
 
-	wxWindow *pendingWindow;
+	wxWindow *pendingWindow, *disposeWindow;
 
 	wxMessageDialog *dummyDialog;
 
@@ -555,6 +598,7 @@ bool TattleApp::OnInit()
 	tattleApp = this;
 	stage = RS_START;
 	pendingWindow = NULL;
+	disposeWindow = NULL;
 	dummyDialog = NULL;
 		
 	bool badCmdLine = false;
@@ -589,6 +633,12 @@ bool TattleApp::OnInit()
 	Proceed();
 
 	return true;
+}
+
+int TattleApp::OnExit()
+{
+	//cout << "Exiting..." << endl;
+	return wxApp::OnExit();
 }
 
 void TattleApp::PerformQuery()
@@ -669,6 +719,10 @@ void tattle::Tattle_Proceed()
 void tattle::Tattle_InsertDialog(wxWindow *dialog)
 {
 	tattleApp->InsertDialog(dialog);
+}
+void tattle::Tattle_DisposeDialog(wxWindow *dialog)
+{
+	tattleApp->DisposeDialog(dialog);
 }
 void tattle::Tattle_Halt()
 {

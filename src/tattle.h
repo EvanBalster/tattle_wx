@@ -29,6 +29,7 @@
 #include <wx/dialog.h>
 #include <wx/textctrl.h>
 #include <wx/msgdlg.h>
+#include <wx/artprov.h>
 
 #include <wx/protocol/http.h>
 
@@ -42,6 +43,7 @@ namespace tattle
 	*/
 	void Tattle_Proceed();
 	void Tattle_InsertDialog(wxWindow *dialog);
+	void Tattle_DisposeDialog(wxWindow *dialog);
 	void Tattle_Halt();
 	
 	enum PARAM_TYPE
@@ -214,7 +216,12 @@ namespace tattle
 		bool showProgress;
 		bool silent;
 
-		unsigned margin; // defaults to 5
+		unsigned marginSm, marginMd, marginLg; // defaults to 5, 8, 10
+
+		wxArtID defaultIcon = wxART_ERROR;
+
+
+		wxArtID GetIconID(wxString tattleName) const;
 
 
 		long style() const
@@ -245,6 +252,7 @@ namespace tattle
         };
         
         Prompt(wxWindow * parent, wxWindowID id, Report &report);
+		~Prompt() wxOVERRIDE;
 		
 		/*
 			Create a dialog box describing a server's reply.
@@ -266,6 +274,8 @@ namespace tattle
         void OnCancel (wxCommandEvent & event);
         void OnDetails(wxCommandEvent & event);
         void OnClose  (wxCloseEvent   & event);
+
+		void OnShow   (wxShowEvent & event);
         
         Report &report;
         Fields  fields;
@@ -326,7 +336,8 @@ namespace tattle
 			wxString title,
 			wxString message,
 			wxString link = wxString(),
-			Report::SERVER_COMMAND command = Report::SC_PROMPT);
+			Report::SERVER_COMMAND command = Report::SC_PROMPT,
+			wxArtID iconArtID = "");
 
 	protected:
 		void Done();

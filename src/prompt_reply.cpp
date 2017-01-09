@@ -4,6 +4,8 @@
 #include <wx/stattext.h>
 #include <wx/statline.h>
 #include <wx/sizer.h>
+#include <wx/artprov.h>
+#include <wx/statbmp.h>
 
 using namespace tattle;
 
@@ -14,29 +16,68 @@ wxBEGIN_EVENT_TABLE(InfoDialog, wxDialog)
 	EVT_CLOSE(InfoDialog::OnClose)
 wxEND_EVENT_TABLE()
 
-InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxString link_, Report::SERVER_COMMAND _command) :
+InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxString link_, Report::SERVER_COMMAND _command, wxArtID iconArtID) :
 	wxDialog(parent, -1, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	command(_command), link(link_)
 {
 	// | wxOK | wxCENTER | (link_.length() ? wxCANCEL : 0)
 
-	wxMessageBox(message, title, wxOK | wxCENTER | (link_.length() ? wxCANCEL : 0));
+	//wxMessageBox(message, title, wxOK | wxCENTER | (link_.length() ? wxCANCEL : 0));
 
 	didAction = false;
 	overrideCommand = false;
 
+	wxIcon iconInfo = wxArtProvider::GetIcon(iconArtID.length() ? iconArtID : uiConfig.defaultIcon);
+	wxBitmap bmpInfo = wxArtProvider::GetBitmap(iconArtID.length() ? iconArtID : uiConfig.defaultIcon, "wxART_OTHER_C", wxSize(32, 32));
+
+	SetIcon(iconInfo);
+
 	wxBoxSizer *sizerTop = new wxBoxSizer(wxVERTICAL);
 
-	sizerTop->AddSpacer(uiConfig.margin);
-
 	{
-		wxStaticText *messageText = new wxStaticText(this, -1, message,
-			wxDefaultPosition, wxDefaultSize, wxLEFT);
+		wxBoxSizer *display = new wxBoxSizer(wxHORIZONTAL);
 
-		sizerTop->Add(messageText, 1, wxALIGN_LEFT | wxALL, uiConfig.margin);
+		display->Add(new wxStaticBitmap(this, -1, bmpInfo), 0, wxALL, uiConfig.marginLg);
+
+		{
+			wxBoxSizer *textArea = new wxBoxSizer(wxVERTICAL);
+
+			textArea->AddSpacer(uiConfig.marginSm);
+
+			message.Replace("\r", "");
+
+			wxString header, content;
+
+			{
+				wxString::size_type pos = message.find("\n\n");
+				if (pos == wxString::npos)
+				{
+					content = message;
+				}
+				else
+				{
+					header = message.substr(0, pos);
+					content = message.substr(pos+2);
+				}
+			}
+
+			wxStaticText
+				*tHeader = (header.length() ? new wxStaticText(this, -1, header) : NULL),
+				*tContent = new wxStaticText(this, -1, content);
+
+			if (tHeader)
+			{
+				tHeader->SetFont(wxFontInfo(12).AntiAliased()); //Family(wxFONTFAMILY_SWISS)
+				tHeader->SetForegroundColour(wxTheColourDatabase->Find("MEDIUM BLUE"));
+				textArea->Add(tHeader, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd);
+			}
+			textArea->Add(tContent, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd);
+
+			display->Add(textArea, 0);
+		}
+
+		sizerTop->Add(display, 0);
 	}
-
-	sizerTop->AddSpacer(uiConfig.margin);
 
 	{
 		wxBoxSizer *actionRow = new wxBoxSizer(wxHORIZONTAL);
@@ -45,26 +86,31 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 
 		if (link.length())
 		{
-			actionRow->Add(dfl = new wxButton(this, wxID_OPEN), 1, wxALL, uiConfig.margin);
-			actionRow->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, uiConfig.margin);
+			actionRow->Add(dfl = new wxButton(this, wxID_OPEN), 1, wxALL, uiConfig.marginSm);
+			actionRow->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, uiConfig.marginSm);
 		}
 		else
 		{
-			actionRow->Add(dfl = new wxButton(this, wxID_OK), 1, wxALL, uiConfig.margin);
+			actionRow->Add(dfl = new wxButton(this, wxID_OK), 1, wxALL, uiConfig.marginSm);
 		}
 
 		if (dfl) dfl->SetDefault();
 
-		sizerTop->Add(actionRow, 0, wxALIGN_CENTER | wxALL);
+		sizerTop->Add(actionRow, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginSm);
 	}
 
-	sizerTop->AddSpacer(uiConfig.margin);
-
 	SetSizerAndFit(sizerTop);
+
+	Center(wxBOTH);
 }
 
 void InfoDialog::Done()
 {
+	// If we destroy this window AFTER spawning the prompt under wxMSW,
+	//    the prompt disappears and cannot be recovered.
+	Disable();
+	Destroy();
+
 	if (!overrideCommand)
 		switch (command)
 	{
@@ -80,7 +126,6 @@ void InfoDialog::Done()
 		else           Tattle_Proceed();
 		break;
 	}
-	Destroy();
 }
 
 void InfoDialog::OpenLink()

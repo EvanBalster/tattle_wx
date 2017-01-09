@@ -13,7 +13,8 @@
 -i "user_email=Your E-mail:"
 -ih "user_email=you@example.com (optional)"
 
--wt
+-wi warning
 -wp
+-wt
 
 -v
