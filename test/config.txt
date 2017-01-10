@@ -3,6 +3,7 @@
 
 -aq "app-error-hash=FAKERS"
 -a  "app-time-local=NOW"
+-aq "app-version=0.9.0b"
 
 -pt "Error Report"
 -pm "The app crashed!  Tell us what happened and we'll investigate."
@@ -13,7 +14,6 @@
 -i "user_email=Your E-mail:"
 -ih "user_email=you@example.com (optional)"
 
--wi warning
 -wp
 -wt
 

@@ -21,9 +21,9 @@ using namespace tattle;
 
 
 wxBEGIN_EVENT_TABLE(ViewReport, wxDialog)
-	EVT_BUTTON(ViewReport::Ev_Done,  ViewReport::OnDone)
-	EVT_BUTTON(ViewReport::Ev_Open,  ViewReport::OnOpen)
-	EVT_BUTTON(ViewReport::Ev_Dir,   ViewReport::OnFolder)
+	EVT_BUTTON(ViewReport::Ev_Done,     ViewReport::OnDone)
+	EVT_BUTTON(ViewReport::Ev_OpenFile, ViewReport::OnOpenFile)
+	EVT_BUTTON(ViewReport::Ev_OpenDir,  ViewReport::OnOpenDir)
 	EVT_CLOSE (ViewReport::OnClose)
 wxEND_EVENT_TABLE()
 
@@ -66,7 +66,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 {
 	SetIcon(wxArtProvider::GetIcon(wxART_INFORMATION));
 
-	const unsigned MARGIN = uiConfig.marginMd;
+	const unsigned MARGIN = uiConfig.marginSm;
 
 	++ViewReportCount;
 	
@@ -202,7 +202,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 				sizerTop->Add(sizerFiles, 0, wxALL | wxALIGN_CENTER, 0);
 			}
 
-			wxButton *button = new wxButton(this, wxID_OPEN, shortName,
+			wxButton *button = new wxButton(this, wxID_FILE, shortName,
 				wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, i->name);
 			
 			sizerFiles->Add(button, 0, wxALL | wxALIGN_CENTER, MARGIN);
@@ -226,7 +226,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		
 		butDone->SetDefault();
 		
-		sizerTop->Add(actionRow, 0, wxALIGN_CENTER | wxALL);
+		sizerTop->Add(actionRow, 0, wxALIGN_RIGHT | wxALL);
 	}
 	
 	sizerTop->AddSpacer(MARGIN);
@@ -246,7 +246,7 @@ void ViewReport::OnClose(wxCloseEvent   & event)
 	Destroy();
 }
 
-void ViewReport::OnOpen (wxCommandEvent & event)
+void ViewReport::OnOpenFile(wxCommandEvent & event)
 {
 	wxWindow *window = dynamic_cast<wxWindow*>(event.GetEventObject());
 	
@@ -258,7 +258,7 @@ void ViewReport::OnOpen (wxCommandEvent & event)
 	}
 }
 
-void ViewReport::OnFolder(wxCommandEvent & event)
+void ViewReport::OnOpenDir(wxCommandEvent & event)
 {
 	wxLaunchDefaultApplication(report.viewPath);
 /*#if __WXMSW__

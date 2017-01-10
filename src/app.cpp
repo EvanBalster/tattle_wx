@@ -86,10 +86,12 @@ const UIConfig &tattle::uiConfig = uiConfig_;
 
 UIConfig::UIConfig()
 {
+	defaultIcon = wxART_ERROR;
+
 	silent = false;
 	labelSend = "Send Report";
-	labelCancel = "Don't Send";
-	labelView = "Details...";
+	//labelCancel = "Don't Send";
+	//labelView = "Details...";
 	stayOnTop = false;
 	showProgress = false;
 	marginSm = 5;
@@ -111,13 +113,10 @@ wxArtID UIConfig::GetIconID(wxString tattleName) const
 
 static TattleApp *tattleApp = NULL;
 
-// Main application object.
+
 class tattle::TattleApp : public wxApp
 {
 public:
-	// override base class virtuals
-	// ----------------------------
-
 	static bool ParsePair(const wxString &str, wxString &first, wxString &second)
 	{
 		wxString::size_type p = str.find_first_of('=');
@@ -484,9 +483,12 @@ public:
 			stage = RS_DONE;
 
 		case RS_DONE:
+			if (prompt)
+			{
+				prompt->Destroy();
+				prompt = NULL;
+			}
 			stage = RS_DONE;
-			dummyDialog->Destroy();
-			dummyDialog = NULL;
 			break;
 		}
 
@@ -495,11 +497,33 @@ public:
 		{
 			anyWindows = true;
 			pendingWindow->Show();
+			pendingWindow->Raise();
 			//pendingWindow = NULL;
 		}
 
 		// Register the idle handler to start the next task
 		ToggleIdleHandler(true);
+	}
+
+	void ShowPrompt()
+	{
+		if (stage < RS_PROMPT)
+		{
+			stage = RS_QUERY;
+			Proceed();
+		}
+		else if (prompt)
+		{
+			// Go back to the prompt step
+			stage = RS_PROMPT;
+			if (!prompt->IsEnabled()) prompt->Enable();
+			if (!prompt->IsShown()) prompt->Show();
+			prompt->Raise();
+		}
+		else
+		{
+			wxASSERT("Tattle workflow error: can't resume prompt");
+		}
 	}
 
 	void InsertDialog(wxWindow *dialog)
@@ -519,9 +543,7 @@ public:
 	void Halt()
 	{
 		stage = RS_DONE;
-
-		// Register the idle handler to start the next task
-		ToggleIdleHandler(true);
+		Proceed();
 	}
 
 	void OnIdle(wxIdleEvent &event)
@@ -577,8 +599,7 @@ private:
 	RUN_STAGE stage;
 
 	wxWindow *pendingWindow, *disposeWindow;
-
-	wxMessageDialog *dummyDialog;
+	Prompt *prompt;
 
 	bool idleHandler;
 	bool anyWindows;
@@ -599,7 +620,7 @@ bool TattleApp::OnInit()
 	stage = RS_START;
 	pendingWindow = NULL;
 	disposeWindow = NULL;
-	dummyDialog = NULL;
+	prompt = NULL;
 		
 	bool badCmdLine = false;
 		
@@ -674,7 +695,8 @@ void TattleApp::PerformPrompt()
 	if (report.postURL.isSet() && !uiConfig.silent)
 	{
 		// Set up the prompt window for display
-		pendingWindow = new Prompt(NULL, -1, report_);
+		prompt = new Prompt(NULL, -1, report_);
+		pendingWindow = prompt;
 	}
 }
 void TattleApp::PerformPost()
@@ -682,15 +704,17 @@ void TattleApp::PerformPost()
 	// Could be query-only...
 	if (!report.postURL.isSet()) return;
 	
-	Report::Reply reply = report.httpPost();
+	Report::Reply reply = report.httpPost(prompt);
 
 	if (reply.valid() && !uiConfig.silent)
 	{
 		// Queue up the prompt window
-		pendingWindow = Prompt::DisplayReply(reply);
+		pendingWindow = Prompt::DisplayReply(reply, prompt);
 	}
 	else
 	{
+		pendingWindow = Prompt::DisplayReply(reply, prompt);
+
 		// Flag for a connection warning.
 		report_.connectionWarning = true;
 	}
@@ -715,6 +739,10 @@ int TattleApp::OnRun()
 void tattle::Tattle_Proceed()
 {
 	tattleApp->Proceed();
+}
+void tattle::Tattle_ShowPrompt()
+{
+	tattleApp->ShowPrompt();
 }
 void tattle::Tattle_InsertDialog(wxWindow *dialog)
 {

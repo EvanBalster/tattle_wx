@@ -59,7 +59,7 @@ bool Report::ParsedURL::set(wxString url)
 
 
 Report::Reply::Reply() :
-	connected(false), statusCode(0), error(wxPROTO_NOERR), command(SC_NONE)
+	connected(false), statusCode(0), error(wxPROTO_NOERR), command(SC_NONE), icon("")
 {
 }
 
@@ -98,12 +98,15 @@ wxString tattle::GetTagContents(const wxString &reply, const wxString &tagName)
 
 void Report::Reply::parseRaw(const ParsedURL &url)
 {
-	wxString comm;
+	wxString comm, iconName;
 	
-	title   = GetTagContents(raw, wxT("tattle-title")),
-	message = GetTagContents(raw, wxT("tattle-message")),
-	link    = GetTagContents(raw, wxT("tattle-link"));
-	comm    = GetTagContents(raw, wxT("tattle-command"));
+	title    = GetTagContents(raw, wxT("tattle-title")),
+	message  = GetTagContents(raw, wxT("tattle-message")),
+	link     = GetTagContents(raw, wxT("tattle-link"));
+	comm     = GetTagContents(raw, wxT("tattle-command"));
+	iconName = GetTagContents(raw, wxT("tattle-icon"));
+
+	icon = uiConfig.GetIconID(iconName);
 	
 	if      (comm == wxT("STOP"))         command = SC_STOP;
 	else if (comm == wxT("PROMPT"))       command = SC_PROMPT;
@@ -210,12 +213,10 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 	if (dialog) dialog->Update(10, "Connecting to " + queryURL.host + "...");
 	wxYield();
 	reply.connect(http, queryURL);
-	wxSleep(2);
 
 	if (dialog) dialog->Update(30, "Talking with " + queryURL.host + "...");
 	wxYield();
 	reply.pull(http, queryURL);
-	wxSleep(1);
 	
 	if (dialog) dialog->Update(60, "Finishing up...");
 	
@@ -232,7 +233,7 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 
 Report::Reply Report::httpPost(wxWindow *parent) const
 {
-	wxHTTP http; http.SetTimeout(10);
+	wxHTTP http; http.SetTimeout(20);
 
 	wxProgressDialog *dialog = NULL;
 	if (uiConfig.showProgress)
@@ -249,11 +250,9 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 	if (dialog) dialog->Update(10, "Connecting to " + queryURL.host + "...");
 	wxYield();
 	reply.connect(http, postURL);
-	wxSleep(1);
-	if (dialog) dialog->Update(20, "Sending to" + queryURL.host + "...");
+	if (dialog) dialog->Update(20, "Sending to" + queryURL.host + "...\nThis may take a while.");
 	wxYield();
 	reply.pull(http, postURL);
-	wxSleep(1);
 	
 	if (dialog) dialog->Update(60, "Finishing up...");
 	
