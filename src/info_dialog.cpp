@@ -40,7 +40,9 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 	{
 		wxBoxSizer *display = new wxBoxSizer(wxHORIZONTAL);
 
-		display->Add(new wxStaticBitmap(this, -1, bmpInfo), 0, wxALL, uiConfig.marginLg);
+		display->Add(new wxStaticBitmap(this, -1, bmpInfo), 0, wxTOP|wxLEFT, uiConfig.marginLg);
+
+		display->AddSpacer(uiConfig.marginSm);
 
 		{
 			wxBoxSizer *textArea = new wxBoxSizer(wxVERTICAL);
@@ -110,7 +112,11 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 			actionRow->Add(dfl = new wxButton(this, wxID_OK), 1, wxALL, uiConfig.marginSm);
 		}
 
-		if (dfl) dfl->SetDefault();
+		if (dfl)
+		{
+			dfl->SetDefault();
+			dfl->SetFocus();
+		}
 
 		sizerTop->Add(actionRow, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginSm);
 	}

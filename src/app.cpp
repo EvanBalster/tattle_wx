@@ -706,18 +706,21 @@ void TattleApp::PerformPost()
 	
 	Report::Reply reply = report.httpPost(prompt);
 
-	if (reply.valid() && !uiConfig.silent)
+	if (reply.valid())
 	{
-		// Queue up the prompt window
-		pendingWindow = Prompt::DisplayReply(reply, prompt);
+		if (!reply.icon.length()) reply.icon = wxART_INFORMATION;
 	}
 	else
 	{
-		pendingWindow = Prompt::DisplayReply(reply, prompt);
+		if (!reply.icon.length()) reply.icon = wxART_ERROR;
 
 		// Flag for a connection warning.
 		report_.connectionWarning = true;
 	}
+
+	// Queue up the info dialog
+	if (!uiConfig.silent)
+		pendingWindow = Prompt::DisplayReply(reply, prompt);
 }
 
 /*int TattleApp::OnIdle()

@@ -155,7 +155,7 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 
 	if (errorMessage.Length())
 	{
-		return new InfoDialog(parent, wxT("Send Failed"), errorMessage, "", Report::SC_PROMPT);
+		return new InfoDialog(parent, wxT("Send Failed"), errorMessage, "", Report::SC_PROMPT, reply.icon);
 	}
 
 	return NULL;
