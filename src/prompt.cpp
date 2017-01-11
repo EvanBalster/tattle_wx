@@ -83,8 +83,6 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 {
 	wxString errorMessage;
 
-	bool didAction = false;
-
 	if (!reply.connected)
 	{
 		errorMessage =
