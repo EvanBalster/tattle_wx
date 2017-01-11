@@ -199,13 +199,12 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 	
 	//wxString query = preQueryString();
 	
-#if __WXMAC__
 	if (uiConfig.showProgress && parent && uiConfig.stayOnTop)
 	{
+		// Hack for ordering issue
 		parent->Hide();
 		parent = NULL;
 	}
-#endif
 
 	wxProgressDialog dialog("Looking for solutions...", "Preparing...", 60, parent,
 		wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
@@ -238,9 +237,8 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 	
 	http.Close();
 	
-#if __WXMAC__
+	// Ordering issue hack
 	if (uiConfig.showProgress && parent && uiConfig.stayOnTop) parent->Show();
-#endif
 	
 	return reply;
 }
@@ -249,16 +247,14 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 {
 	wxHTTP http; http.SetTimeout(20);
 	
-#if __WXMAC__
 	if (uiConfig.showProgress && parent && uiConfig.stayOnTop)
 	{
 		// Hack for ordering issue on Mac
 		parent->Hide();
 		parent = NULL;
 	}
-#endif
 
-	wxProgressDialog dialog("Sending...", "Preparing Report...", 60, NULL,
+	wxProgressDialog dialog("Sending...", "Preparing Report...", 60, parent,
 		wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 	if (uiConfig.showProgress)
 	{
@@ -279,7 +275,7 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 	
 	if (uiConfig.showProgress)
 	{
-		dialog.Update(20, "Sending to " + queryURL.host + "...\nThis may take a while.");
+		dialog.Update(25, "Sending to " + queryURL.host + "...\nThis may take a while.");
 		wxYield();
 	}
 	reply.pull(http, postURL);

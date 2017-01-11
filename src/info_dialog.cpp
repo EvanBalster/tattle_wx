@@ -30,8 +30,14 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 	didAction = false;
 	overrideCommand = false;
 
+#ifdef __WXMAC__
+	wxSize badgeSize(16, 16);
+#else
+	wxSize badgeSize(32, 32);
+#endif
+
 	wxIcon iconInfo = wxArtProvider::GetIcon(iconArtID.length() ? iconArtID : uiConfig.defaultIcon);
-	wxBitmap bmpInfo = wxArtProvider::GetBitmap(iconArtID.length() ? iconArtID : uiConfig.defaultIcon, "wxART_OTHER_C", wxSize(32, 32));
+	wxBitmap bmpInfo = wxArtProvider::GetBitmap(iconArtID.length() ? iconArtID : uiConfig.defaultIcon, "wxART_OTHER_C", badgeSize);
 
 	SetIcon(iconInfo);
 
