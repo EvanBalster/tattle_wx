@@ -489,6 +489,8 @@ public:
 				prompt = NULL;
 			}
 			stage = RS_DONE;
+			std::cout << "Done now..." << std::endl;
+			printTopLevelWindows();
 			break;
 		}
 
@@ -502,7 +504,7 @@ public:
 		}
 
 		// Register the idle handler to start the next task
-		ToggleIdleHandler(true);
+		if (stage != RS_DONE) ToggleIdleHandler(true);
 	}
 
 	void ShowPrompt()
@@ -566,8 +568,9 @@ public:
 
 		if (stage == RS_DONE)
 		{
-			// Hmm
-			//if (uiConfig.silent) wxExit();
+			std::cout << "Done and idle..." << std::endl;
+			if (printTopLevelWindows())
+				ToggleIdleHandler(true);
 		}
 
 		/*switch (stage)
@@ -580,6 +583,32 @@ public:
 		case RS_DONE:
 			break;
 		}*/
+	}
+	
+	static bool printTopLevelWindows()
+	{
+		// Hmm
+		wxWindowList::compatibility_iterator node = wxTopLevelWindows.GetFirst();
+		if (node)
+		{
+			std::cout << "Top level windows: ";
+			while (node)
+			{
+				wxTopLevelWindow* win = (wxTopLevelWindow*) node->GetData();
+				
+				std::cout
+					// << "@" << win
+					// << ":" << wxString(win->GetClassInfo()->GetClassName())
+					<< "\"" << win->GetTitle() << "\"";
+				
+				node = node->GetNext();
+				
+				if (node) std::cout << ", ";
+			}
+			std::cout << std::endl;
+		}
+		
+		return node != NULL;
 	}
 
 	// this one is called on application startup and is a good place for the app

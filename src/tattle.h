@@ -227,7 +227,7 @@ namespace tattle
 		wxArtID GetIconID(wxString tattleName) const;
 
 
-		long style() const
+		int style() const
 		{
 			return (stayOnTop ? wxSTAY_ON_TOP : 0);
 		}
