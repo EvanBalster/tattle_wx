@@ -560,6 +560,7 @@ public:
 		if (pendingWindow)
 		{
 			pendingWindow->Show();
+			pendingWindow->Raise();
 			pendingWindow = NULL;
 		}
 

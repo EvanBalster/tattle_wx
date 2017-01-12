@@ -193,10 +193,54 @@ void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
 	parseRaw(url);
 }
 
+void Report::httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProgressDialog *prog, bool isQuery) const
+{
+	if (prog)
+	{
+		// Set icon and show
+		prog->SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
+		prog->Show();
+		prog->Raise();
+	}
+
+	encodePost(http, isQuery);
+
+	do
+	{
+		// Connect to server
+		if (prog)
+		{
+			prog->Update(10, "Connecting to " + url.host + "...");
+			wxYield();
+		}
+		reply.connect(http, url);
+
+		//wxSleep(1);  For UI testing
+
+		if (!reply.connected) break;
+
+		// Post and download reply
+		if (uiConfig.showProgress)
+		{
+			if (isQuery)
+				prog->Update(30, "Talking with " + url.host + "...");
+			else
+				prog->Update(25, "Sending to " + url.host + "...\nThis may take a while.");
+			wxYield();
+		}
+		reply.pull(http, url);
+
+		//wxSleep(1);  For UI testing
+
+		if (uiConfig.showProgress) prog->Update(60);
+	}
+	while (false);
+
+	http.Close();
+}
+
 Report::Reply Report::httpQuery(wxWindow *parent) const
 {
-	wxHTTP http; http.SetTimeout(6);
-	
 	//wxString query = preQueryString();
 	
 	if (uiConfig.showProgress && parent && uiConfig.stayOnTop)
@@ -206,37 +250,21 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 		parent = NULL;
 	}
 
-	wxProgressDialog dialog("Looking for solutions...", "Preparing...", 60, parent,
-		wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
-	if (uiConfig.showProgress)
-	{
-		// Hack for ordering issue on Mac
-		dialog.SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
-		dialog.Show();
-	}
-	
-	// Add POST data
-	encodePost(http, true);
-	
 	Reply reply;
-	if (uiConfig.showProgress)
-	{
-		dialog.Update(10, "Connecting to " + queryURL.host + "...");
-		wxYield();
-	}
-	reply.connect(http, queryURL);
+	wxHTTP http; http.SetTimeout(6);
 
 	if (uiConfig.showProgress)
 	{
-		dialog.Update(30, "Talking with " + queryURL.host + "...");
-		wxYield();
+		wxProgressDialog dialog("Looking for solutions...", "Preparing...", 60, parent,
+			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
+
+		httpAction(http, queryURL, reply, &dialog, true);
 	}
-	reply.pull(http, queryURL);
-	
-	if (uiConfig.showProgress) dialog.Update(60);
-	
-	http.Close();
-	
+	else
+	{
+		httpAction(http, queryURL, reply, NULL, true);
+	}
+
 	// Ordering issue hack
 	if (uiConfig.showProgress && parent && uiConfig.stayOnTop) parent->Show();
 	
@@ -245,8 +273,6 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 
 Report::Reply Report::httpPost(wxWindow *parent) const
 {
-	wxHTTP http; http.SetTimeout(20);
-	
 	if (uiConfig.showProgress && parent && uiConfig.stayOnTop)
 	{
 		// Hack for ordering issue on Mac
@@ -254,35 +280,21 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 		parent = NULL;
 	}
 
-	wxProgressDialog dialog("Sending...", "Preparing Report...", 60, parent,
-		wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
-	if (uiConfig.showProgress)
-	{
-		dialog.SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
-		dialog.Show();
-	}
-	
-	// Add POST data
-	encodePost(http, false);
-	
 	Reply reply;
+	wxHTTP http; http.SetTimeout(60);
+
 	if (uiConfig.showProgress)
 	{
-		dialog.Update(10, "Connecting to " + queryURL.host + "...");
-		wxYield();
+		wxProgressDialog dialog("Sending...", "Preparing Report...", 60, parent,
+			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
+
+		httpAction(http, postURL, reply, &dialog, false);
 	}
-	reply.connect(http, postURL);
-	
-	if (uiConfig.showProgress)
+	else
 	{
-		dialog.Update(25, "Sending to " + queryURL.host + "...\nThis may take a while.");
-		wxYield();
+		httpAction(http, postURL, reply, NULL, false);
 	}
-	reply.pull(http, postURL);
 	
-	if (uiConfig.showProgress) dialog.Update(60);
-	
-	http.Close();
 	
 	return reply;
 }

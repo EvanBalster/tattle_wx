@@ -31,6 +31,7 @@
 #include <wx/msgdlg.h>
 #include <wx/artprov.h>
 #include <wx/hyperlink.h>
+#include <wx/progdlg.h>
 
 #include <wx/protocol/http.h>
 
@@ -195,6 +196,8 @@ namespace tattle
         void     encodePost(wxHTTP &request, bool preQuery) const;
         
     public: // members
+		void httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProgressDialog *dlg, bool isQuery) const;
+
 		ParsedURL postURL, queryURL;
         
 		wxString viewPath;
