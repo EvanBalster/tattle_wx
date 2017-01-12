@@ -22,26 +22,67 @@ wxBEGIN_EVENT_TABLE(Prompt, wxDialog)
 	EVT_BUTTON(Prompt::Ev_Cancel,  Prompt::OnCancel)
 	EVT_BUTTON(Prompt::Ev_Details, Prompt::OnDetails)
 	EVT_CLOSE (Prompt::OnClose)
+	EVT_SHOW  (Prompt::OnShow)
 wxEND_EVENT_TABLE()
 
 void Prompt::OnDetails(wxCommandEvent & event)
 {
 	if (!ViewReport::Exists())
 	{
-		ViewReport *viewReport = new ViewReport(this, -1, report);
+		ViewReport *viewReport = new ViewReport(this, -1);
 		
 		viewReport->Show();
 	}
 }
 
-bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool stayOnTop)
+void Prompt::OnSubmit(wxCommandEvent & event)
+{
+	// Halt user input
+	Enable(false);
+
+	// Upload user field values
+	UpdateReportFromFields();
+
+	// Proceed to the posting stage
+	Tattle_Proceed();
+}
+
+void Prompt::OnCancel(wxCommandEvent & event)
+{
+	Close(true);
+}
+
+void Prompt::OnClose(wxCloseEvent &event)
+{
+	// TODO consider veto appeal
+	Enable(false);
+
+	Tattle_Halt();
+}
+
+void Prompt::OnShow(wxShowEvent & event)
+{
+}
+
+void Prompt::UpdateReportFromFields()
+{
+	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
+	{
+		i->param->value = i->control->GetValue();
+	}
+}
+
+static void ApplyMarkup(wxControl *control, const wxString &markup)
+{
+	wxString processed = markup;
+	processed.Replace(_("<br>"), _("\n"), true);
+	control->SetLabelMarkup(processed);
+}
+
+wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 {
 	wxString errorMessage;
-	
-	int stayOnTopFlag = (stayOnTop ? wxSTAY_ON_TOP : 0);
-	
-	bool didAction = false;
-	
+
 	if (!reply.connected)
 	{
 		errorMessage =
@@ -50,10 +91,10 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 	else if (!reply.ok())
 	{
 		errorMessage = "Failed to send the report.\n";
-		
+
 		if (reply.statusCode == 404)
 		{
-			errorMessage += "(uploader script not found)";
+			errorMessage += "(server script not found)";
 		}
 		else
 		{
@@ -65,7 +106,7 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 	{
 		// Reply is not formatted for tattle... assume
 		errorMessage = wxT("The report went to the wrong place.");
-		
+
 		if (reply.raw.Length())
 		{
 			wxString htmlTitle = GetTagContents(reply.raw, wxT("title"));
@@ -77,7 +118,7 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 			else
 			{
 				errorMessage += wxT("\nAre you connected to the internet?");
-				
+
 				wxString raw = reply.raw;
 				if (raw.Length() > 512)
 				{
@@ -91,104 +132,46 @@ bool Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent, bool sta
 		{
 			errorMessage += wxT("\nAre you connected to the internet?");
 		}
-		
 	}
 	else if (reply.sentLink())
 	{
 		wxString title = reply.title, msg = reply.message;
-	
+
 		if (!title.Length()) title = wxT("Suggested Link");
-		if (!msg  .Length()) msg   = wxT("The server replied with a link.");
-		
-		msg += wxT("\n\n") + reply.link + wxT("\nOpen in your browser?");
-		
-		wxMessageDialog *offerLink = new wxMessageDialog(parent,
-			msg, title, wxICON_INFORMATION|wxOK|wxCANCEL|wxCENTER | stayOnTopFlag);
-		
-		offerLink->SetOKLabel(wxT("Open Link"));
-		
-		const int result = offerLink->ShowModal();
-		
-		delete offerLink;
-		
-		if (result == wxID_OK) 
-		{
-			if (wxLaunchDefaultBrowser(reply.link))
-			{
-				didAction = true;
-			}
-			else
-			{
-				wxMessageBox(wxT("The link couldn't be opened for some reason:\n[")+reply.link+wxT("]"), wxT("Failed to open link"),
-					wxOK|wxCENTER | stayOnTopFlag, parent);
-				wxLaunchDefaultApplication(reply.link);
-			}
-		} 
+		if (!msg.Length()) msg = wxT("The server replied with a link.");
+
+		return new InfoDialog(parent, title, msg, reply.link, reply.command, reply.icon);
 	}
 	else if (reply.message.Length() > 0)
 	{
 		wxString title = reply.title, msg = reply.message;
 		if (!title.Length()) title = "Report Sent";
-		if (!msg  .Length()) msg   = "Your report was sent and accepted.";
-		
-		wxMessageBox(msg, title, wxOK|wxCENTER | stayOnTopFlag, parent);
+		if (!msg.Length()) msg = "Your report was sent and accepted.";
+
+		return new InfoDialog(parent, title, msg, "", reply.command, reply.icon);
 	}
-	
+
 	if (errorMessage.Length())
 	{
-		wxMessageBox(errorMessage, wxT("Send Failed"),
-			wxICON_ERROR|wxOK|wxCENTER | stayOnTopFlag, parent);
+		return new InfoDialog(parent, wxT("Send Failed"), errorMessage, "", Report::SC_PROMPT, reply.icon);
 	}
-	
-	return didAction;
-}
 
-void Prompt::OnSubmit(wxCommandEvent & event)
-{
-	UpdateReportFromFields();
-	
-	Report::Reply reply = report.httpPost();
-	
-	if (report.stayOnTop) Show(0);
-	
-	DisplayReply(reply, this, report.stayOnTop);
-	
-	if (report.stayOnTop) Show(1);
-	
-	if (reply.valid()) Close();
-}
-
-void Prompt::OnCancel(wxCommandEvent & event)
-{
-	//wxMessageBox(_("User canceled the report."));
-	Close(true);
-}
-
-void Prompt::UpdateReportFromFields()
-{
-	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
-	{
-		i->param->value = i->control->GetValue();
-	}
-}
-
-static const unsigned MARGIN = 5;
-
-static void ApplyMarkup(wxControl *control, const wxString &markup)
-{
-	wxString processed = markup;
-	processed.Replace(_("<br>"), _("\n"), true);
-	control->SetLabelMarkup(processed);
+	return NULL;
 }
 
 // Dialog
 Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
-	: wxDialog(parent, id, _report.promptTitle,
+	: wxDialog(parent, id, uiConfig.promptTitle,
 		wxDefaultPosition, wxDefaultSize,
-		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
+		wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	report(_report),
 	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
+	SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
+
+
+	const unsigned MARGIN = uiConfig.marginSm;
+
 	// Error display ?
 	//wxTextCtrl *displayError 
 
@@ -196,23 +179,23 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	
 	sizerTop->AddSpacer(MARGIN);
 
-	if (report.promptMessage.length())
+	if (uiConfig.promptMessage.length())
 	{
-		wxStaticText *messageText = new wxStaticText(this, -1, report.promptMessage,
+		wxStaticText *messageText = new wxStaticText(this, -1, uiConfig.promptMessage,
 			wxDefaultPosition, wxDefaultSize, wxLEFT);
 		
-		ApplyMarkup(messageText, report.promptMessage);
+		ApplyMarkup(messageText, uiConfig.promptMessage);
 		
 		sizerTop->Add(messageText, 0, wxALIGN_LEFT | wxALL, MARGIN);
 
 		// Horizontal rule, if no technical message
-		if (report.promptTechnical.length() == 0)
+		if (uiConfig.promptTechnical.length() == 0)
 			sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
 	}
 	
-	if (report.promptTechnical.length())
+	if (uiConfig.promptTechnical.length())
 	{
-		wxString technical = report.promptTechnical;
+		wxString technical = uiConfig.promptTechnical;
 		technical.Replace(_("<br>"), _("\n"), true);
 	
 		wxTextCtrl *techBox = new wxTextCtrl(this, -1, technical,
@@ -283,13 +266,15 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		// Not fields
 		break;
 	}
-	
+
 	if (report.connectionWarning)
 	{
 		wxStaticText *messageText = new wxStaticText(this, -1,
 			wxT("Check your internet connection."));
-		
-		sizerTop->Add(messageText, 0, wxALIGN_CENTER | wxALL, MARGIN);
+
+		messageText->SetForegroundColour(*wxRED);
+
+		sizerTop->Add(messageText, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT, MARGIN);
 	}
 
 	{
@@ -297,33 +282,35 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 
 		wxButton *butSubmit, *butCancel;
 		
-		butSubmit = new wxButton(this, wxID_OK, report.labelSend);
-		butCancel = new wxButton(this, wxID_CANCEL, report.labelCancel);
+		butSubmit = new wxButton(this, Ev_Submit, uiConfig.labelSend);
+		butCancel = new wxButton(this, Ev_Cancel, uiConfig.labelCancel);
 
-		actionRow->Add(butSubmit, 1, wxEXPAND | wxALL, MARGIN);
+		actionRow->Add(butSubmit, 1, wxALL, MARGIN);
 		actionRow->Add(butCancel, 0, wxALL, MARGIN);
 		
-		if (report.viewEnabled)
+		if (uiConfig.viewEnabled)
 		{
-			wxButton *butView = new wxButton(this, wxID_VIEW_DETAILS, report.labelView);
+			wxButton *butView = new wxButton(this, Ev_Details, uiConfig.labelView);
 			actionRow->Add(butView, 0, wxALL, MARGIN);
 		}
 		
 		butSubmit->SetDefault();
 
-		sizerTop->Add(actionRow, 0, wxALIGN_CENTER | wxALL);
+		sizerTop->Add(actionRow, 0, wxALIGN_RIGHT | wxALL);
 	}
 	
 	sizerTop->AddSpacer(MARGIN);
 
 	// Apply the sizing scheme
 	SetSizerAndFit(sizerTop);
+
+	Center(wxBOTH);
 	
 	if (firstField) firstField->SetFocus();
 }
 
-void Prompt::OnClose(wxCloseEvent &event)
+Prompt::~Prompt()
 {
-	// TODO consider veto
-	Destroy();
+	int i = 5;
 }
+

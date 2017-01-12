@@ -21,13 +21,11 @@ using namespace tattle;
 
 
 wxBEGIN_EVENT_TABLE(ViewReport, wxDialog)
-	EVT_BUTTON(ViewReport::Ev_Done,  ViewReport::OnDone)
-	EVT_BUTTON(ViewReport::Ev_Open,  ViewReport::OnOpen)
-	EVT_BUTTON(ViewReport::Ev_Dir,   ViewReport::OnFolder)
+	EVT_BUTTON(ViewReport::Ev_Done,     ViewReport::OnDone)
+	EVT_BUTTON(ViewReport::Ev_OpenFile, ViewReport::OnOpenFile)
+	EVT_BUTTON(ViewReport::Ev_OpenDir,  ViewReport::OnOpenDir)
 	EVT_CLOSE (ViewReport::OnClose)
 wxEND_EVENT_TABLE()
-
-static const unsigned MARGIN = 5;
 
 
 static int ViewReportCount = 0;
@@ -42,7 +40,7 @@ ViewReport::~ViewReport()
 	--ViewReportCount;
 }
 
-static void ParamDump(wxString &dump, Report::Parameter *param)
+static void ParamDump(wxString &dump, const Report::Parameter *param)
 {
 	// Special handling for fields with newlines
 	if (param->value.length() > 35 || param->value.find_first_of(wxT("\r\n")) != wxString::npos)
@@ -60,13 +58,16 @@ static void ParamDump(wxString &dump, Report::Parameter *param)
 }
 
 
-ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
+ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 	: wxDialog(parent, id, wxT("Report Contents"),
 		wxDefaultPosition, wxDefaultSize,
-		wxDEFAULT_DIALOG_STYLE | (_report.stayOnTop ? wxSTAY_ON_TOP : 0)),
-	report(_report),
+		wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
 {
+	SetIcon(wxArtProvider::GetIcon(wxART_INFORMATION));
+
+	const unsigned MARGIN = uiConfig.marginSm;
+
 	++ViewReportCount;
 	
 	wxBoxSizer *sizerTop = new wxBoxSizer(wxVERTICAL);
@@ -82,7 +83,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		bool first = true;
 		
 		if (preQueryNote)
-			for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+			for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		{
 			if (i->type != PARAM_STRING) continue;
 			
@@ -128,7 +129,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		
 		first = true;
 		
-		for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+		for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		{
 			if (i->type != PARAM_STRING) continue;
 			
@@ -138,7 +139,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 			{
 				wxString queryLabel =
 					wxT("The full report below is only sent if you choose `")
-					+ report.labelSend + wxT("':");
+					+ uiConfig.labelSend + wxT("':");
 					
 				sizerTop->Add(
 					new wxStaticText(this, -1, queryLabel),
@@ -175,7 +176,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		wxFlexGridSizer *sizerFiles = NULL;
 	#endif
 		
-		for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+		for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		{
 			if (i->type != PARAM_FILE_TEXT && i->type != PARAM_FILE_BIN) continue;
 			
@@ -201,7 +202,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 				sizerTop->Add(sizerFiles, 0, wxALL | wxALIGN_CENTER, 0);
 			}
 
-			wxButton *button = new wxButton(this, wxID_OPEN, shortName,
+			wxButton *button = new wxButton(this, wxID_FILE, shortName,
 				wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, i->name);
 			
 			sizerFiles->Add(button, 0, wxALL | wxALIGN_CENTER, MARGIN);
@@ -225,12 +226,14 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id, Report &_report)
 		
 		butDone->SetDefault();
 		
-		sizerTop->Add(actionRow, 0, wxALIGN_CENTER | wxALL);
+		sizerTop->Add(actionRow, 0, wxALIGN_RIGHT | wxALL);
 	}
 	
 	sizerTop->AddSpacer(MARGIN);
 
 	SetSizerAndFit(sizerTop);
+
+	//Center(wxBOTH);
 }
 
 void ViewReport::OnDone (wxCommandEvent & event)
@@ -243,19 +246,19 @@ void ViewReport::OnClose(wxCloseEvent   & event)
 	Destroy();
 }
 
-void ViewReport::OnOpen (wxCommandEvent & event)
+void ViewReport::OnOpenFile(wxCommandEvent & event)
 {
 	wxWindow *window = dynamic_cast<wxWindow*>(event.GetEventObject());
 	
 	if (window)
 	{
-		Report::Parameter *param = report.findParam(window->GetName());
+		const Report::Parameter *param = report.findParam(window->GetName());
 		
 		if (param) wxLaunchDefaultApplication(param->fname);
 	}
 }
 
-void ViewReport::OnFolder(wxCommandEvent & event)
+void ViewReport::OnOpenDir(wxCommandEvent & event)
 {
 	wxLaunchDefaultApplication(report.viewPath);
 /*#if __WXMSW__

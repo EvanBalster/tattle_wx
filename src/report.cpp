@@ -18,17 +18,18 @@ using namespace tattle;
 
 Report::Report()
 {
-	silent = false;
 	connectionWarning = false;
-	labelSend = "Send Report";
-	labelCancel = "Don't Send";
-	labelView = "Details...";
-	stayOnTop = false;
 }
 
 Report::Parameter *Report::findParam(const wxString &name)
 {
 	for (Parameters::iterator i = params.begin(); i != params.end(); ++i) if (i->name == name) return &*i;
+	return NULL;
+}
+
+const Report::Parameter *Report::findParam(const wxString &name) const
+{
+	for (Parameters::const_iterator i = params.begin(); i != params.end(); ++i) if (i->name == name) return &*i;
 	return NULL;
 }
 

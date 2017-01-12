@@ -10,8 +10,10 @@
 
 #include "tattle.h"
 
+#include <wx/progdlg.h>
 #include <wx/sstream.h>
 #include <wx/uri.h>
+#include <wx/frame.h>
 
 
 using namespace tattle;
@@ -58,7 +60,7 @@ bool Report::ParsedURL::set(wxString url)
 
 
 Report::Reply::Reply() :
-	connected(false), statusCode(0), error(wxPROTO_NOERR), command(SC_NONE)
+	connected(false), statusCode(0), error(wxPROTO_NOERR), command(SC_NONE), icon("")
 {
 }
 
@@ -97,12 +99,15 @@ wxString tattle::GetTagContents(const wxString &reply, const wxString &tagName)
 
 void Report::Reply::parseRaw(const ParsedURL &url)
 {
-	wxString comm;
+	wxString comm, iconName;
 	
-	title   = GetTagContents(raw, wxT("tattle-title")),
-	message = GetTagContents(raw, wxT("tattle-message")),
-	link    = GetTagContents(raw, wxT("tattle-link"));
-	comm    = GetTagContents(raw, wxT("tattle-command"));
+	title    = GetTagContents(raw, wxT("tattle-title")),
+	message  = GetTagContents(raw, wxT("tattle-message")),
+	link     = GetTagContents(raw, wxT("tattle-link"));
+	comm     = GetTagContents(raw, wxT("tattle-command"));
+	iconName = GetTagContents(raw, wxT("tattle-icon"));
+
+	icon = uiConfig.GetIconID(iconName);
 	
 	if      (comm == wxT("STOP"))         command = SC_STOP;
 	else if (comm == wxT("PROMPT"))       command = SC_PROMPT;
@@ -117,10 +122,24 @@ void Report::Reply::parseRaw(const ParsedURL &url)
 	}
 }
 
-void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
+void Report::Reply::connect(wxHTTP &http, const ParsedURL &url)
 {
 	connected = http.Connect(url.host, (unsigned short) url.port);
 
+	if (connected)
+	{
+
+	}
+	else
+	{
+		std::cout << "Tattle: failed connection to " << url.host << std::endl;
+		statusCode = 0;
+		error = http.GetError();
+	}
+}
+
+void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
+{
 	if (connected)
 	{
 		std::cout << "Tattle: connected to " << url.host << std::endl;
@@ -174,34 +193,108 @@ void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
 	parseRaw(url);
 }
 
-Report::Reply Report::httpQuery() const
+void Report::httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProgressDialog *prog, bool isQuery) const
 {
-	wxHTTP http; http.SetTimeout(5);
-	
+	if (prog)
+	{
+		// Set icon and show
+		prog->SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
+		prog->Show();
+		prog->Raise();
+	}
+
+	encodePost(http, isQuery);
+
+	do
+	{
+		// Connect to server
+		if (prog)
+		{
+			prog->Update(10, "Connecting to " + url.host + "...");
+			wxYield();
+		}
+		reply.connect(http, url);
+
+		//wxSleep(1);  For UI testing
+
+		if (!reply.connected) break;
+
+		// Post and download reply
+		if (uiConfig.showProgress)
+		{
+			if (isQuery)
+				prog->Update(30, "Talking with " + url.host + "...");
+			else
+				prog->Update(25, "Sending to " + url.host + "...\nThis may take a while.");
+			wxYield();
+		}
+		reply.pull(http, url);
+
+		//wxSleep(1);  For UI testing
+
+		if (uiConfig.showProgress) prog->Update(60);
+	}
+	while (false);
+
+	http.Close();
+}
+
+Report::Reply Report::httpQuery(wxWindow *parent) const
+{
 	//wxString query = preQueryString();
 	
-	// Add POST data
-	encodePost(http, true);
-	
+	if (uiConfig.showProgress && parent && uiConfig.stayOnTop)
+	{
+		// Hack for ordering issue
+		parent->Hide();
+		parent = NULL;
+	}
+
 	Reply reply;
-	reply.pull(http, queryURL);
-	
-	http.Close();
+	wxHTTP http; http.SetTimeout(6);
+
+	if (uiConfig.showProgress)
+	{
+		wxProgressDialog dialog("Looking for solutions...", "Preparing...", 60, parent,
+			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
+
+		httpAction(http, queryURL, reply, &dialog, true);
+	}
+	else
+	{
+		httpAction(http, queryURL, reply, NULL, true);
+	}
+
+	// Ordering issue hack
+	if (uiConfig.showProgress && parent && uiConfig.stayOnTop) parent->Show();
 	
 	return reply;
 }
 
-Report::Reply Report::httpPost() const
+Report::Reply Report::httpPost(wxWindow *parent) const
 {
-	wxHTTP http; http.SetTimeout(10);
-	
-	// Add POST data
-	encodePost(http, false);
-	
+	if (uiConfig.showProgress && parent && uiConfig.stayOnTop)
+	{
+		// Hack for ordering issue on Mac
+		parent->Hide();
+		parent = NULL;
+	}
+
 	Reply reply;
-	reply.pull(http, postURL);
+	wxHTTP http; http.SetTimeout(60);
+
+	if (uiConfig.showProgress)
+	{
+		wxProgressDialog dialog("Sending...", "Preparing Report...", 60, parent,
+			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
+
+		httpAction(http, postURL, reply, &dialog, false);
+	}
+	else
+	{
+		httpAction(http, postURL, reply, NULL, false);
+	}
 	
-	http.Close();
 	
 	return reply;
 }
