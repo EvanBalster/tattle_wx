@@ -135,6 +135,7 @@ public:
 		CMD_ERR_PARAM_REDECLARED,
 		CMD_ERR_PARAM_MISSING,
 		CMD_ERR_PARAM_NOT_APPLICABLE,
+		CMD_ERR_FAILED_TO_OPEN_CONFIG,
 		CMD_ERR_FAILED_TO_OPEN_FILE,
 		CMD_ERR_BAD_URL,
 		CMD_ERR_BAD_SIZE,
@@ -218,7 +219,7 @@ public:
 					
 					success &= OnCmdLineParsed(parser);
 				}
-				else err = CMD_ERR_FAILED_TO_OPEN_FILE;
+				else err = CMD_ERR_FAILED_TO_OPEN_CONFIG;
 			}
 			else if (c0 == 'a')
 			{
@@ -238,7 +239,7 @@ public:
 			}
 			else if (c0 == 'f')
 			{
-				// Argument string
+// Argument string
 				wxString name, value;
 				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 
@@ -251,25 +252,33 @@ public:
 				else err = CMD_ERR_UNKNOWN;
 				param.name = name;
 				param.fname = value;
-				
-				// Read the file...
-				wxFile file(value);
-				if (file.IsOpened())
+
+				if (!wxFile::Access(value, wxFile::read))
 				{
-					if (param.type == PARAM_FILE_TEXT)
-					{
-						// Content info
-						param.contentInfo = "Content-Type: text/plain";
-					}
-					else
-					{
-						// Content info
-						param.contentInfo = "Content-Type: application/octet-stream"
-							"\r\n"
-							"Content-Transfer-Encoding: Base64";
-					}
+					// Fail gentry.
+					err = CMD_ERR_FAILED_TO_OPEN_FILE;
 				}
-				else err = CMD_ERR_FAILED_TO_OPEN_FILE;
+				else
+				{
+					// Read the file...
+					wxFile file(value);
+					if (file.IsOpened())
+					{
+						if (param.type == PARAM_FILE_TEXT)
+						{
+							// Content info
+							param.contentInfo = "Content-Type: text/plain";
+						}
+						else
+						{
+							// Content info
+							param.contentInfo = "Content-Type: application/octet-stream"
+								"\r\n"
+								"Content-Transfer-Encoding: Base64";
+						}
+					}
+					else err = CMD_ERR_FAILED_TO_OPEN_FILE;
+				}
 				
 				report_.params.push_back(param);
 			}
@@ -408,6 +417,11 @@ public:
 				//success = false;
 			}
 			break;
+		case CMD_ERR_FAILED_TO_OPEN_CONFIG:
+		{
+			cout << "Failed to open Tattle config: `-" << argName << arg.GetStrVal() << "'" << endl;
+			//success = false;
+		}
 		case CMD_ERR_FAILED_TO_OPEN_FILE:
 			{
 				cout << "Failed to open file: `-" << argName << arg.GetStrVal() << "'" << endl;
