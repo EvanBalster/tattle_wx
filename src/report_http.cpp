@@ -126,15 +126,17 @@ void Report::Reply::connect(wxHTTP &http, const ParsedURL &url)
 {
 	connected = http.Connect(url.host, (unsigned short) url.port);
 
+	error      = http.GetError();
+	if (error != wxPROTO_NOERR) connected = false;
+
 	if (connected)
 	{
-
+		// Hooway
 	}
 	else
 	{
-		std::cout << "Tattle: failed connection to " << url.host << std::endl;
+		std::cout << "Tattle: failed connection to " << url.host << " (error " << error << ")" << std::endl;
 		statusCode = 0;
-		error = http.GetError();
 	}
 }
 
@@ -148,9 +150,18 @@ void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
 		if (!path.Length()) path = wxT("/");
 		
 		if (query.Length() && query[0] != wxT('?')) query = wxT("?")+query;
-	
-		// Consume reply and/or error code from server
-		wxInputStream *httpStream = http.GetInputStream(path+query);
+
+		wxInputStream *httpStream = nullptr;
+		error      = http.GetError();
+		if (error != wxPROTO_NOERR)
+		{
+			std::cout << ", status " << statusCode << ", error " << error;
+		}
+		else
+		{
+			// Consume reply and/or error code from server
+			httpStream = http.GetInputStream(path+query);
+		}
 		
 		raw = wxT("");
 		if (httpStream)
