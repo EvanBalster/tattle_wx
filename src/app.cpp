@@ -42,6 +42,7 @@ namespace tattle
 		//CMD_SWITCH       ("w", "parent-window",   "Make the prompt GUI stay on top.")
 		
 		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more arguments.")
+		CMD_OPTION_STRINGS("l",  "log",           "<fname>              Append information to log file.")
 
 		CMD_OPTION_STRINGS("a",  "arg",           "<parameter>=<value>  Argument string.")
 		CMD_OPTION_STRINGS("aq", "arg-query",     "<parameter>=<value>  Argument string used in pre-query.")
@@ -162,7 +163,12 @@ public:
 
 		do
 		{
-			if (c0 == 'u')
+			if (c0 == 'l')
+			{
+				if (c1 == '\0') report_.logFile = arg.GetStrVal();
+				else            err = CMD_ERR_UNKNOWN;
+			}
+			else if (c0 == 'u')
 			{
 				/*
 					URLs
