@@ -15,45 +15,55 @@
 #include <wx/uri.h>
 #include <wx/frame.h>
 
+#include <wx/msw/winundef.h>
+#undef ERROR
+#undef DELETE
+#include <telling/msg_writer.h>
 
 using namespace tattle;
+using namespace std::string_view_literals;
 
-
-bool Report::ParsedURL::set(wxString url)
+bool Report::ParsedURL::set(wxString fullURL)
 {
-	wxURI uri(url);
+	url = nng::url(fullURL.c_str());
 	
 	bool ok = true;
-	
-	if (uri.HasScheme() && uri.GetScheme() != "http")
+
+	if (std::string_view(url.get()->u_scheme) == "http"sv) {
+		url.get()->u_scheme = "https";
+	}
+	if (std::string_view(url.get()->u_scheme) != "https"sv)
 	{
-		std::cout << "Error: URL is not HTTP." << std::endl;
+		std::cout << "Error: URL is not HTTP: " << url.get()->u_scheme << std::endl;
 		ok = false;
 	}
-	
-	if (!uri.HasServer())
+
+	if (!url.get()->u_host)
 	{
 		std::cout << "Error: URL does not specify a host." << std::endl;
 		ok = false;
 	}
 	
-	host = uri.GetServer();
-	path = uri.GetPath();
+	host = url.get()->u_host;
+	path = url.get()->u_path;
 	port = 80;
 	
 	// Optionally parse a port
-	if (uri.HasPort())
+	if (url.get()->u_port)
 	{
-		if (!uri.GetPort().ToULong(&port))
+		std::cout << "parsing port: " << url.get()->u_port << std::endl;
+		port = atol(url.get()->u_port);
+		std::cout << "parsed port: " << port << std::endl;
+		if (!port)
 		{
-			std::cout << "Error: invalid port `" << uri.GetPort() << "'" << std::endl;
+			std::cout << "Error: invalid port `" << url.get()->u_port << "'" << std::endl;
 			ok = false;
 		}
 	}
 	
-	if (uri.HasFragment()) std::cout << "Warning: ignoring URL fragment: " << uri.GetFragment() << std::endl;
-	if (uri.HasUserInfo()) std::cout << "Warning: ignoring URL userinfo: " << uri.GetUserInfo() << std::endl;
-	if (uri.HasQuery()   ) std::cout << "Warning: ignoring URL query: "    << uri.GetQuery()    << std::endl;
+	if (url.get()->u_fragment) std::cout << "Warning: ignoring URL fragment: " << url.get()->u_fragment << std::endl;
+	if (url.get()->u_userinfo) std::cout << "Warning: ignoring URL userinfo: " << url.get()->u_userinfo << std::endl;
+	if (url.get()->u_query   ) std::cout << "Warning: ignoring URL query: "    << url.get()->u_query    << std::endl;
 
 	return ok;
 }
@@ -118,93 +128,72 @@ void Report::Reply::parseRaw(const ParsedURL &url)
 	{
 		// Format into an HTTP link based at the upload URL.
 		//    Don't allow links to other websites.
-		link = wxT("http://") + url.host + "/" + link;
+		link = wxT("https://") + url.host + "/" + link;
 	}
 }
 
-void Report::Reply::connect(wxHTTP &http, const ParsedURL &url)
+/*void Report::Reply::connect(HTTPClient &http, const ParsedURL &url)
 {
-	connected = http.Connect(url.host, (unsigned short) url.port);
+	msgwriter = telling::HttpRequest(url.url.get()->u_path);
+	msgwriter.writeHeader("Host", url.host.utf8_string);
+	msgwriter.writeHeader_Length();
+	auto output = msgwriter.writeBody(); // blank body for this connection test
 
-	error      = http.GetError();
-	if (error != wxPROTO_NOERR) connected = false;
+	auto reply = http.request(msgwriter.release());
+	reply.wait(); // TODO: wait for timeout?
 
-	if (connected)
-	{
-		// Hooway
+	try {
+		if (reply.get()) connected = true; // assuming we got a reply, we are now able to connect to the server
 	}
-	else
-	{
+	catch (const std::exception& e) {
 		std::cout << "Tattle: failed connection to " << url.host << " (error " << error << ")" << std::endl;
 		statusCode = 0;
+		connected = false;
 	}
-}
+}*/
 
-void Report::Reply::pull(wxHTTP &http, const ParsedURL &url, wxString query)
+void Report::Reply::pull(HTTPClient &http, const ParsedURL &url, bool isQuery, wxString query)
 {
-	if (connected)
-	{
-		std::cout << "Tattle: connected to " << url.host << std::endl;
-	
-		wxString path = url.path;
-		if (!path.Length()) path = wxT("/");
-		
-		if (query.Length() && query[0] != wxT('?')) query = wxT("?")+query;
+	std::cout << "Tattle: connecting to " << url.host << std::endl;
 
-		wxInputStream *httpStream = nullptr;
-		error      = http.GetError();
-		if (error != wxPROTO_NOERR)
-		{
-			std::cout << ", status " << statusCode << ", error " << error;
-		}
-		else
-		{
-			// Consume reply and/or error code from server
-			httpStream = http.GetInputStream(path+query);
-		}
-		
-		raw = wxT("");
-		if (httpStream)
-		{
+	wxString path = url.path;
+	if (!path.Length()) path = wxT("/");
+
+	if (query.Length() && query[0] != wxT('?')) query = wxT("?") + query;
+
+	auto writer = telling::HttpRequest(path.utf8_string() + query.utf8_string(), telling::MethodCode::POST);
+	writer.writeHeader("Host", url.host.utf8_string());
+	writer.writeHeader("Connection", "close");
+	writer.writeHeader_Length();
+	report.encodePost(writer.writeBody(), false);
+
+	auto replyFuture = http.request(writer.release());
+	replyFuture.wait();
+
+	std::cout << "Tattle: query `" << (path + query) << ": ";
+	raw = wxT("");
+	try {
+		auto replymsg = replyFuture.get();
+		auto view = telling::MsgView(replymsg);
+		if (view.status().isSuccess()) {
+			std::cout << "success... reply:" << std::endl;
+			std::cout << view.bodyString() << std::endl;
 			wxStringOutputStream out_stream(&raw);
-			httpStream->Read(out_stream);
+			raw = wxString(std::string(view.bodyString()));
 		}
-		
-		statusCode = http.GetResponse();
-		error      = http.GetError();
-		
-		bool success = (error == wxPROTO_NOERR);
-		
-		std::cout << "Tattle: query `" << (path+query) << ": " <<
-			(success ? "success" : "failure");
-		if (success)
-		{
-			std::cout << "... reply:" << std::endl << raw;
+		else {
+			std::cout << "failure... error: " << view.statusString() << std::endl;
 		}
-		else
-		{
-			std::cout << ", status " << statusCode << ", error " << error;
-		}
-		std::cout << std::endl;
-		
-		if (httpStream) wxDELETE(httpStream);
 	}
-	else
-	{
-		std::cout << "Tattle: failed connection to " << url.host << std::endl;
-	
-		// Failed to connect...
-		raw = wxT("");
-		
-		statusCode = 0;
-		error      = http.GetError();
+	catch (nng::exception& e) {
+		std::cout << "failure... exception: " << e.what() << ", context: " << e.who() << std::endl;
 	}
 	
 	// Parse raw reply string into bits
 	parseRaw(url);
 }
 
-void Report::httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProgressDialog *prog, bool isQuery) const
+void Report::httpAction(HTTPClient &http, const ParsedURL &url, Reply &reply, wxProgressDialog *prog, bool isQuery) const
 {
 	if (prog)
 	{
@@ -214,7 +203,7 @@ void Report::httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProg
 		prog->Raise();
 	}
 
-	encodePost(http, isQuery);
+	//encodePost(http, isQuery);
 
 	do
 	{
@@ -224,11 +213,11 @@ void Report::httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProg
 			prog->Update(10, "Connecting to " + url.host + "...");
 			wxYield();
 		}
-		reply.connect(http, url);
+		/*reply.connect(http, url);
 
 		//wxSleep(1);  For UI testing
 
-		if (!reply.connected) break;
+		if (!reply.connected) break;*/
 
 		// Post and download reply
 		if (uiConfig.showProgress)
@@ -239,15 +228,15 @@ void Report::httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProg
 				prog->Update(25, "Sending to " + url.host + "...\nThis may take a while.");
 			wxYield();
 		}
-		reply.pull(http, url);
+		reply.pull(http, url, isQuery);
 
 		//wxSleep(1);  For UI testing
 
 		if (uiConfig.showProgress) prog->Update(60);
 	}
 	while (false);
-
-	http.Close();
+	
+	//http.Close();
 }
 
 Report::Reply Report::httpQuery(wxWindow *parent) const
@@ -262,18 +251,18 @@ Report::Reply Report::httpQuery(wxWindow *parent) const
 	}
 
 	Reply reply;
-	wxHTTP http; http.SetTimeout(6);
+	HTTPClient client(nng::url(queryURL.url));
 
 	if (uiConfig.showProgress)
 	{
 		wxProgressDialog dialog("Looking for solutions...", "Preparing...", 60, parent,
 			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 
-		httpAction(http, queryURL, reply, &dialog, true);
+		httpAction(client, queryURL, reply, &dialog, true);
 	}
 	else
 	{
-		httpAction(http, queryURL, reply, NULL, true);
+		httpAction(client, queryURL, reply, NULL, true);
 	}
 
 	// Ordering issue hack
@@ -292,18 +281,18 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 	}
 
 	Reply reply;
-	wxHTTP http; http.SetTimeout(60);
+	HTTPClient client(nng::url(postURL.url));
 
 	if (uiConfig.showProgress)
 	{
 		wxProgressDialog dialog("Sending...", "Preparing Report...", 60, parent,
 			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 
-		httpAction(http, postURL, reply, &dialog, false);
+		httpAction(client, postURL, reply, &dialog, false);
 	}
 	else
 	{
-		httpAction(http, postURL, reply, NULL, false);
+		httpAction(client, postURL, reply, NULL, false);
 	}
 	
 	
@@ -312,11 +301,27 @@ Report::Reply Report::httpPost(wxWindow *parent) const
 
 bool Report::httpTest(const ParsedURL &url) const
 {
-	wxHTTP http; http.SetTimeout(5);
-	
-	bool connected = http.Connect(url.host, url.port);
-	
-	http.Close();
+	//wxHTTP http; http.SetTimeout(5);
+	HTTPClient client(nng::url(url.url));
+
+	auto writer = telling::HttpRequest(url.path.utf8_string(), telling::MethodCode::POST);
+	writer.writeHeader("Host", url.host.utf8_string());
+	writer.writeHeader("Connection", "close");
+	writer.writeHeader_Length();
+	report.encodePost(writer.writeBody(), false);
+
+	auto replyFuture = client.request(writer.release());
+	replyFuture.wait();
+
+	bool connected = false;
+	try {
+		if (replyFuture.get()) {
+			connected = true;
+		}
+	}
+	catch (nng::exception& e) {
+		std::cout << "http test failed... exception: " << e.what() << ", context: " << e.who() << std::endl;
+	}
 	
 	return connected;
 }

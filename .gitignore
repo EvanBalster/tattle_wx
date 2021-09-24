@@ -1,0 +1,9 @@
+.vs/*
+wx/*
+Debug/*
+include/nng/*
+include/nngpp/*
+include/lib/*
+include/mbedtls/*
+include/telling/*
+Release/*

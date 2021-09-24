@@ -7,11 +7,6 @@
 
 #include "tattle.h"
 
-#include <wx/app.h>
-#include <wx/cmdline.h>
-
-//File reading / encoding
-#include <wx/file.h>
 
 
 #define CMD_HELP(SHORT, LONG, DESC)              { wxCMD_LINE_SWITCH, SHORT, LONG, DESC, wxCMD_LINE_VAL_NONE, wxCMD_LINE_OPTION_HELP },
@@ -114,6 +109,8 @@ wxArtID UIConfig::GetIconID(wxString tattleName) const
 
 static TattleApp *tattleApp = NULL;
 
+// TODO: DELETE LATER
+static bool redirected = false;
 
 class tattle::TattleApp : public wxApp
 {
@@ -145,6 +142,21 @@ public:
 	virtual void OnInitCmdLine(wxCmdLineParser& parser) wxOVERRIDE
 	{
 		parser.SetDesc(g_cmdLineDesc);
+
+		// TODO: DELETE LATER
+		if (!redirected) {
+			FILE* redir_file;
+			wchar_t *logFilePath = L"tattle_log.txt";
+			const wchar_t openMode[] = { L'w', 0 };
+
+			int res_reopen = _wfreopen_s(&redir_file, logFilePath, openMode, stdout);
+			if (res_reopen && !redir_file) redir_file = stdout;
+
+			std::cout.rdbuf(std::cout.rdbuf());
+			std::cerr.rdbuf(std::cerr.rdbuf());
+			std::clog.rdbuf(std::clog.rdbuf());
+		}
+		// DELETE LATER
 	}
 	
 	bool ExecCmdLineArg(const wxCmdLineArg &arg)
@@ -696,7 +708,7 @@ bool TattleApp::OnInit()
 
 	// Debug
 	cout << "Successful init." << endl
-		<< "  URL: http://" << report.postURL.host << report.postURL.path << endl
+		<< "  URL: https://" << report.postURL.host << report.postURL.path << endl
 		<< "  Parameters:" << endl;
 	for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
 		cout << "    - " << i->name << "= `" << i->value << "' Type#" << i->type << endl;

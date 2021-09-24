@@ -7,6 +7,7 @@
 #include <wx/artprov.h>
 #include <wx/statbmp.h>
 #include <wx/hyperlink.h>
+#include <wx/msw/winundef.h>
 
 using namespace tattle;
 

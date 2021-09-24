@@ -12,7 +12,7 @@
 #include <wx/stattext.h>
 #include <wx/statline.h>
 #include <wx/sizer.h>
-
+#include <wx/msw/winundef.h>
 
 using namespace tattle;
 
