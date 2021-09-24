@@ -208,7 +208,7 @@ namespace tattle
         
         // Encode HTTP query and post request
 		wxString preQueryString()                           const;
-        void     encodePost(std::ostream & ostream, bool preQuery) const;
+        void     encodePost(std::ostream & ostream, std::string boundary, bool preQuery) const;
         
     public: // members
 		void httpAction(HTTPClient &http, const ParsedURL &url, Reply &reply, wxProgressDialog *dlg, bool isQuery) const;

@@ -119,14 +119,9 @@ void Report::readFiles()
 
 
 
-void Report::encodePost(std::ostream & ostream, bool preQuery) const
+void Report::encodePost(std::ostream & ostream, std::string boundary, bool preQuery) const
 {
-	// Boundary with 12-digit random number
-	std::string boundary_id = "tattle-boundary-";
-	for (unsigned i = 0; i < 12; ++i) boundary_id.push_back('0' + (std::rand()%10));
-	boundary_id += "--";
-	
-	std::string boundary_divider = "\r\n--" + boundary_id + "\r\n";
+	std::string boundary_divider = "\r\n--" + boundary;
 	
 	for (Parameters::const_iterator i = params.begin(); true; ++i)
 	{
@@ -141,6 +136,7 @@ void Report::encodePost(std::ostream & ostream, bool preQuery) const
 	
 		// Not the last item, is it?
 		if (i == params.end()) break;
+		ostream << "\r\n";
 	
 		// Content disposition and name
 		ostream << "Content-Disposition: form-data; name=\"";
@@ -186,7 +182,9 @@ void Report::encodePost(std::ostream & ostream, bool preQuery) const
 		}
 	}
 	
+	ostream << "--\r\n";
 	ostream << '\0';
+	ostream.flush();
 	//cout << "HTTP Post Buffer:" << endl << ostream. << endl;
 	
 	//http.SetPostBuffer(wxT("multipart/form-data; boundary=\"") + wxString(boundary_id) + ("\""), postBuffer);

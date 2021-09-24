@@ -147,7 +147,7 @@ public:
 		if (!redirected) {
 			FILE* redir_file;
 			wchar_t *logFilePath = L"tattle_log.txt";
-			const wchar_t openMode[] = { L'w', 0 };
+			const wchar_t openMode[] = { L'wb', 0 };
 
 			int res_reopen = _wfreopen_s(&redir_file, logFilePath, openMode, stdout);
 			if (res_reopen && !redir_file) redir_file = stdout;

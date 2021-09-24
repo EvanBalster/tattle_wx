@@ -51,9 +51,7 @@ bool Report::ParsedURL::set(wxString fullURL)
 	// Optionally parse a port
 	if (url.get()->u_port)
 	{
-		std::cout << "parsing port: " << url.get()->u_port << std::endl;
 		port = atol(url.get()->u_port);
-		std::cout << "parsed port: " << port << std::endl;
 		if (!port)
 		{
 			std::cout << "Error: invalid port `" << url.get()->u_port << "'" << std::endl;
@@ -164,10 +162,25 @@ void Report::Reply::pull(HTTPClient &http, const ParsedURL &url, bool isQuery, w
 	auto writer = telling::HttpRequest(path.utf8_string() + query.utf8_string(), telling::MethodCode::POST);
 	writer.writeHeader("Host", url.host.utf8_string());
 	writer.writeHeader("Connection", "close");
-	writer.writeHeader_Length();
-	report.encodePost(writer.writeBody(), false);
 
-	auto replyFuture = http.request(writer.release());
+	// Boundary with 12-digit random number
+	std::string boundary = "tattle-boundary-";
+	for (unsigned i = 0; i < 12; ++i) boundary.push_back('0' + (std::rand() % 10));
+	writer.writeHeader("Content-Type", "multipart/form-data;boundary=\"" + boundary + "\"");
+
+	// Write header length after other headers are added.
+	writer.writeHeader_Length();
+
+	// Create the body of the message; stream into msgwriter's body and use the boundary created above
+	report.encodePost(writer.writeBody(), boundary, false);
+
+	// For debugging
+	auto msg = writer.release();
+	telling::MsgView view(msg);
+	std::cout << std::endl << view.bodyString() << std::endl;
+
+	// Release the message and await a reply
+	auto replyFuture = http.request(std::move(msg));
 	replyFuture.wait();
 
 	std::cout << "Tattle: query `" << (path + query) << ": ";
@@ -308,7 +321,7 @@ bool Report::httpTest(const ParsedURL &url) const
 	writer.writeHeader("Host", url.host.utf8_string());
 	writer.writeHeader("Connection", "close");
 	writer.writeHeader_Length();
-	report.encodePost(writer.writeBody(), false);
+	report.encodePost(writer.writeBody(), "", false);
 
 	auto replyFuture = client.request(writer.release());
 	replyFuture.wait();
