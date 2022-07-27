@@ -17,6 +17,8 @@
 	#include <wx/wrapsizer.h>
 #endif
 
+#include <wx/msw/winundef.h>
+
 using namespace tattle;
 
 

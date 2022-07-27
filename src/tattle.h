@@ -5,6 +5,8 @@
 //  Created by Evan Balster on 11/12/16.
 //
 
+#define no_init_all // VS2017 fix
+
 #ifndef tattle_h
 #define tattle_h
 
@@ -32,13 +34,23 @@
 #include <wx/artprov.h>
 #include <wx/hyperlink.h>
 #include <wx/progdlg.h>
+#include <wx/app.h>
+#include <wx/cmdline.h>
 
 #include <wx/protocol/http.h>
+
+#include <wx/msw/winundef.h>
+
+#undef ERROR
+#undef DELETE
+#include <telling/http_client.h>
 
 namespace tattle
 {
 	using std::cout;
 	using std::endl;
+
+	using HTTPClient = telling::HttpClient_Box;
 
 	/*
 		Workflow control calls
@@ -120,7 +132,7 @@ namespace tattle
 		{
 			wxString host, path;
 			unsigned long port;
-			
+			nng::url url;
 			
 			ParsedURL() {port=80;}
 			
@@ -166,8 +178,8 @@ namespace tattle
 			
 			
 			// Fill in string fields from HTTP request / stream
-			void connect(wxHTTP &http, const ParsedURL &url);
-			void pull(wxHTTP &http, const ParsedURL &url, wxString query = wxT(""));
+			//void connect(HTTPClient &http, const ParsedURL &url);
+			void pull(HTTPClient &http, const ParsedURL &url, bool isQuery, wxString query = wxT(""));
 			
 			// Assigns title, message and link based on raw reply text
 			void parseRaw(const ParsedURL &url);
@@ -196,13 +208,13 @@ namespace tattle
         
         // Encode HTTP query and post request
 		wxString preQueryString()                           const;
-        void     encodePost(wxHTTP &request, bool preQuery) const;
+        void     encodePost(std::ostream & ostream, std::string boundary, bool preQuery) const;
         
     public: // members
-		void httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProgressDialog *dlg, bool isQuery) const;
+		void httpAction(HTTPClient &http, const ParsedURL &url, Reply &reply, wxProgressDialog *dlg, bool isQuery) const;
 
 		ParsedURL postURL, queryURL;
-        
+
 		wxString viewPath;
 
 		wxString logFile;

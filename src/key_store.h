@@ -40,8 +40,8 @@ namespace tattle
 				control characters 0x00 to 0x1F and 0x7F are not allowed.
 		*/
 		bool set(const std::string &name, const std::string &value);
-		void set(const CookieStore::Map &other)                           {for (auto &pair : other) set(pair.first, pair.second);}
-		void set(const CookieStore      &other)                           {set(other.map);}
+		//void set(const CookieStore::Map &other)                           {for (auto &pair : other) set(pair.first, pair.second);}
+		//void set(const CookieStore      &other)                           {set(other.map);}
 
 
 	private:

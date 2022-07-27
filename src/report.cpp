@@ -10,8 +10,6 @@
 
 #include "tattle.h"
 
-#include <wx/file.h>
-
 
 using namespace tattle;
 
@@ -121,16 +119,9 @@ void Report::readFiles()
 
 
 
-void Report::encodePost(wxHTTP &http, bool preQuery) const
+void Report::encodePost(std::ostream & ostream, std::string boundary, bool preQuery) const
 {
-	// Boundary with 12-digit random number
-	std::string boundary_id = "tattle-boundary-";
-	for (unsigned i = 0; i < 12; ++i) boundary_id.push_back('0' + (std::rand()%10));
-	boundary_id += "--";
-	
-	std::string boundary_divider = "\r\n--" + boundary_id + "\r\n";
-	
-	wxMemoryBuffer postBuffer;
+	std::string boundary_divider = "\r\n--" + boundary;
 	
 	for (Parameters::const_iterator i = params.begin(); true; ++i)
 	{
@@ -141,33 +132,34 @@ void Report::encodePost(wxHTTP &http, bool preQuery) const
 		}
 	
 		// All items are preceded and succeeded by a boundary.
-		DumpString(postBuffer, boundary_divider);
+		ostream << boundary_divider;
 	
 		// Not the last item, is it?
 		if (i == params.end()) break;
+		ostream << "\r\n";
 	
 		// Content disposition and name
-		DumpString(postBuffer, "Content-Disposition: form-data; name=\"");
-		DumpString(postBuffer, i->name);
-		DumpString(postBuffer, "\"");
+		ostream << "Content-Disposition: form-data; name=\"";
+		ostream << i->name;
+		ostream << "\"";
 		if (i->fname.length())
 		{
 			// Filename
-			DumpString(postBuffer, "; filename=\"");
-			DumpString(postBuffer, i->fname);
-			DumpString(postBuffer, "\"");
+			ostream << "; filename=\"";
+			ostream << i->fname;
+			ostream << "\"";
 		}
-		DumpString(postBuffer, "\r\n");
+		ostream << "\r\n";
 		
 		// Additional content type info
 		if (i->contentInfo.length())
 		{
-			DumpString(postBuffer, i->contentInfo);
-			DumpString(postBuffer, "\r\n");
+			ostream << i->contentInfo;
+			ostream << "\r\n";
 		}
 		
 		// Empty line...
-		DumpString(postBuffer, "\r\n");
+		ostream << "\r\n";
 		
 		// Content...
 		switch (i->type)
@@ -175,25 +167,27 @@ void Report::encodePost(wxHTTP &http, bool preQuery) const
 		case PARAM_STRING:
 		case PARAM_FIELD:
 		case PARAM_FIELD_MULTI:
-			DumpString(postBuffer, i->value);
+			ostream << i->value;
 			break;
 		
 		case PARAM_FILE_TEXT:
 		case PARAM_FILE_BIN:
-			DumpBuffer(postBuffer, i->fileContents);
+			ostream << i->fileContents;
 			break;
 		case PARAM_NONE:
 		default:
-			DumpString(postBuffer, "Unknown Data:\r\n");
-			DumpString(postBuffer, i->value);
+			ostream << "Unknown Data:\r\n";
+			ostream << i->value;
 			break;
 		}
 	}
 	
-	postBuffer.AppendByte('\0');
-	cout << "HTTP Post Buffer:" << endl << ((const char*) postBuffer.GetData()) << endl;
+	ostream << "--\r\n";
+	ostream << '\0';
+	ostream.flush();
+	//cout << "HTTP Post Buffer:" << endl << ostream. << endl;
 	
-	http.SetPostBuffer(wxT("multipart/form-data; boundary=\"") + wxString(boundary_id) + ("\""), postBuffer);
+	//http.SetPostBuffer(wxT("multipart/form-data; boundary=\"") + wxString(boundary_id) + ("\""), postBuffer);
 }
 
 static void AppendPercentEncoded(wxString &str, char c)
