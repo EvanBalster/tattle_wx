@@ -67,6 +67,12 @@ void Report::readFiles()
 	{
 		if (i->type == PARAM_FILE_TEXT || i->type == PARAM_FILE_BIN)
 		{
+			if (!wxFile::Access(i->fname, wxFile::read))
+			{
+				DumpString(i->fileContents, wxT("[File not found]"));
+				continue;
+			}
+
 			// Open the file
 			wxFile file(i->fname);
 			

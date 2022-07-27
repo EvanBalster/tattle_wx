@@ -49,14 +49,15 @@ namespace tattle
 	void Tattle_DisposeDialog(wxWindow *dialog);
 	void Tattle_Halt();
 	
+	// Types of report parameters.
 	enum PARAM_TYPE
 	{
 		PARAM_NONE = 0,
-		PARAM_STRING,
-		PARAM_FILE_BIN,
-		PARAM_FILE_TEXT,
-		PARAM_FIELD,
-		PARAM_FIELD_MULTI,
+		PARAM_STRING,      // String provided in configuration
+		PARAM_FILE_BIN,    // Data file referenced by configuration
+		PARAM_FILE_TEXT,   // Text file referenced by configuration
+		PARAM_FIELD,       // Text field
+		PARAM_FIELD_MULTI, // Multi-line text field.
 	};
 
 	enum DETAIL_TYPE
@@ -74,7 +75,9 @@ namespace tattle
     struct Report
     {
     public: //types
-        
+        /*
+			Represents a report parameter.
+		*/
         struct Parameter
         {
             Parameter();
@@ -106,7 +109,7 @@ namespace tattle
             std::string contentInfo;
         };
         
-        typedef std::list<Parameter> Parameters;
+        using Parameters = std::list<Parameter>;
 		
 		/*
 			Represents a parsed HTTP URL.
@@ -201,6 +204,8 @@ namespace tattle
 		ParsedURL postURL, queryURL;
         
 		wxString viewPath;
+
+		wxString logFile;
 		
 		bool connectionWarning;
         

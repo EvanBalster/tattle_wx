@@ -2,7 +2,7 @@
 
 **This is a work in progress and may still be subject to compatibility-breaking changes.**
 
-Tattle is a native utility for purposes of error reporting, feedback and data collection.  It is meant to be invoked by another application, compiles a report consisting of command-line arguments, attached files, and user-entered data, and uploads it to an HTTP server using the POST method.
+Tattle is a native utility for purposes of error reporting, software update notifications, feedback and data collection.  It is meant to be invoked by another application, compiles a report consisting of command-line arguments, attached files, and user-entered data, and uploads it to an HTTP server using the POST method.
 
 Tattle's behavior is defined by arguments which may come from a command line or configuration file.  It is designed as an executable rather than a library; this isolates it from critical errors in the calling application.
 
@@ -19,7 +19,7 @@ Step-by-step:
 2. Read files into memory
   * This is done immediately.  (in case files change)
   * File truncation is applied here, limiting memory usage.
-3. Advance Query _(`-uq` enables)_
+3. Query _(`-uq` enables)_
   * Fire HTTP GET request, with `-aq` parameters included in the URL query.
   * If the server responds with text or a link, this is displayed to the user.
   * _The server may specify that execution should stop here.  (Not yet implemented!)_
@@ -28,16 +28,16 @@ Step-by-step:
   * Display a prompt to the user, which may include an informative message and input fields.
   * The user may proceed using the **send** button, or abort using the **cancel** button.
   * The user may view the contents of the error report with the **view data** button.
-5. Post
+5. Post _(`-up` enables)_
   * All parameters are encoded into an HTTP POST request and sent to the post URL.
   * If the post fails, the user is returned to the prompt.
 
-Typically, Tattle displays a UI which will, at minimum, allow the user to either send the report or cancel it.  Any fields specified in the configuration will be displayed to the user, their contents submitted
+Typically, Tattle displays a UI which will, at minimum, allow the user to either send the report or cancel it.  Any fields specified in the configuration will be displayed to the user, their contents submitted when the user chooses to send the report.
 
 
 ## Configuration (command-line arguments)
 
-Version 0.3 of the tattle command-line interface.  Note that parameters containing an `=` should be supplied as a single string.
+Version 0.4 of the tattle command-line interface.  Note that parameters containing an `=` should be supplied as a single string.
 
 | Flag  | Long Form        | Argument          | Effect |
 |-------|------------------|-------------------|--------|
@@ -55,6 +55,7 @@ Version 0.3 of the tattle command-line interface.  Note that parameters containi
 | `-tn` | `--trunc-note`   | `<param>=<text>`  | A line of text marking the truncation. |
 | `-pt` | `--title`        | `<text>`          | A title for the prompt window. |
 | `-pm` | `--message`      | `<text>`          | A message appearing at the top of the prompt window. |
+| `-px` | `--technical`    | `<text>`          | Technical info appearing in the prompt window. |
 | `-ps` | `--label-send`   | `<text>`          | Label for the 'Send Report' button. |
 | `-pc` | `--label-cancel` | `<text>`          | Label for the 'Don't Send Report' button. |
 | `-pv` | `--label-view`   | `<text>`          | Label for the 'View Data' button.  (Enable with `-v`) |
@@ -64,7 +65,9 @@ Version 0.3 of the tattle command-line interface.  Note that parameters containi
 | `-ih` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
 | `-v`  | `--view-data`    | _none_            | Enable 'View Data' dialog so users can see report contents. |
 | `-vd` | `--view-dir`     | `<path>`          | A folder linked from the 'View Data' dialog. |
-
+| `-wi` | `--icon`         | `<system icon>`   | Set system icon: information, error, warning, question, help or tip. |
+| `-wp` | `--show-progress`| _none_            | Enable progress bars; useful for large uploads. |
+| `-wt` | `--stay-on-top`  | _none_            | Tattle's windows stay on top of all others. |
 
 ## This implementation
 
@@ -75,7 +78,7 @@ The author is interested in alternative implementations of this utility, in part
 
 ## Building Tattle/wx
 
-It should be possible to build Tattle with wxWidgets 2 or 3 and any C++98-compatible compiler, but I have not tested extensively.  It depends on wxWidgets' **core**, **base** and **net** libraries.
+It should be possible to build Tattle with wxWidgets 2 or 3 and any C++98-compatible compiler, but I have not tested extensively.  It depends on wxWidgets' **core**, **base**, **net** and **advanced** modules.
 
 Under OSX/Clang with the latest wxWidgets it may be necessary to define FORCE_TR1_TYPE_TRAITS depending on the runtime libraries and flags used to compile wxWidgets and the applications itself.
 
@@ -92,13 +95,12 @@ Things that still need doing:
 
 Things I may investigate in the future:
 
-* An option for parenting the Tattle window to the calling process' window
-* Nicer format for config files
+* More graceful parent/child window behavior with the spawning process.
+* Nicer format for Tattle's configuration (such as XML)
 * Language files for localizing the UI
-* A progress bar for the report upload.
 * Persistent fields (such as user's E-mail address)
-* File compression.
+* Compressed uploading.
 * A way to save compiled reports to disk.
-* Possibly some built in "auto" parameters
+* Possibly some built in "automatic" parameters
   * System description
   * Report time (local/GMT)
