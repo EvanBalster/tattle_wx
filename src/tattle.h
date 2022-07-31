@@ -8,6 +8,8 @@
 #ifndef tattle_h
 #define tattle_h
 
+#include <wx/defs.h>
+
 #include <string>
 #include <iostream>
 #include <list>
@@ -15,7 +17,6 @@
 #if FORCE_TR1_TYPE_TRAITS
     // Hack to deal with STL weirdness on OS X
 	#include <wx/setup.h>
-    #include <wx/defs.h>
 	#ifdef HAVE_TYPE_TRAITS
 		#undef HAVE_TYPE_TRAITS
 	#endif

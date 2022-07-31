@@ -5,6 +5,8 @@
 //  Created by Evan Balster on 11/12/16.
 //
 
+#include <wx/defs.h>
+
 #include <cstring>
 #include <algorithm>
 

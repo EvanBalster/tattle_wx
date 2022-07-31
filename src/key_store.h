@@ -41,7 +41,7 @@ namespace tattle
 		*/
 		bool set(const std::string &name, const std::string &value);
 		void set(const CookieStore::Map &other)                           {for (auto &pair : other) set(pair.first, pair.second);}
-		void set(const CookieStore      &other)                           {set(other.map);}
+		void set(const CookieStore      &other)                           {set(other._map);}
 
 
 	private:
