@@ -33,8 +33,10 @@
 #include <wx/artprov.h>
 #include <wx/hyperlink.h>
 #include <wx/progdlg.h>
+#include <wx/event.h>
 
-#include <wx/protocol/http.h>
+
+#include <wx/webrequest.h>
 
 namespace tattle
 {
@@ -119,7 +121,7 @@ namespace tattle
 		*/
 		struct ParsedURL
 		{
-			wxString host, path;
+			wxString scheme, host, path;
 			unsigned long port;
 			
 			
@@ -129,6 +131,12 @@ namespace tattle
 			bool set(wxString fullURL);
 			
 			bool isSet() const    {return host.Length() != 0;}
+
+
+			wxString full() const
+			{
+				return scheme + "://" + host + ":" + wxString::Format(wxT("%i"),port) + "/" + path;
+			}
 		};
 		
 		/*
@@ -150,9 +158,10 @@ namespace tattle
 			Reply();
 			
 			// HTTP status
-			bool            connected;  // Whether we connected to the server
-			int             statusCode; // HTTP status, or 0 if not connected
-			wxProtocolError error;
+			int                 statusCode = 0; // HTTP status, or 0 if server's response is not available.
+			wxWebRequest::State requestState; // Web request state
+
+			bool connected() const    {return statusCode != 0;} // TODO might be misleading if canceled partway
 			
 			wxString       raw;
 			wxString       title, message, link;
@@ -167,8 +176,7 @@ namespace tattle
 			
 			
 			// Fill in string fields from HTTP request / stream
-			void connect(wxHTTP &http, const ParsedURL &url);
-			void pull(wxHTTP &http, const ParsedURL &url, wxString query = wxT(""));
+			void processResponse(wxWebRequest::State requestState, wxWebResponse &response, const ParsedURL &url, wxString query = wxT(""));
 			
 			// Assigns title, message and link based on raw reply text
 			void parseRaw(const ParsedURL &url);
@@ -186,21 +194,24 @@ namespace tattle
 		
 		
 		// Query the server using the query address.
-		Reply httpQuery(wxWindow *parent = NULL) const;
-		
-		// Perform HTTP post, returning whether successful.
-		Reply httpPost(wxWindow *parent = NULL) const;
+
+		/*
+			Perform an HTTP query or HTTP post, or test the HTTP connection...
+				Supply a parent window if possible, or some other event handler otherwise.
+		*/
+		Reply httpQuery(wxEvtHandler &parent) const;
+		Reply httpPost (wxEvtHandler &parent) const;
 		
 		// Test connectivity by making a test connection (but no actual HTTP query)
-		bool  httpTest(const ParsedURL &url) const;
+		bool  httpTest(wxEvtHandler &parent, const ParsedURL &url) const;
 		
         
         // Encode HTTP query and post request
-		wxString preQueryString()                           const;
-        void     encodePost(wxHTTP &request, bool preQuery) const;
+		wxString preQueryString() const;
+        void     encodePost(wxMemoryBuffer &postData, wxString boundary_id, bool preQuery) const;
         
     public: // members
-		void httpAction(wxHTTP &http, const ParsedURL &url, Reply &reply, wxProgressDialog *dlg, bool isQuery) const;
+		void httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &reply, wxProgressDialog *dlg, bool isQuery) const;
 
 		ParsedURL postURL, queryURL;
         

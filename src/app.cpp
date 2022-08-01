@@ -719,7 +719,7 @@ void TattleApp::PerformQuery()
 	*/
 	if (report.queryURL.isSet())
 	{
-		Report::Reply reply = report.httpQuery();
+		Report::Reply reply = report.httpQuery(*this);
 
 		if (reply.valid() && !uiConfig.silent)
 		{
@@ -735,7 +735,7 @@ void TattleApp::PerformQuery()
 	else if (!uiConfig.silent)
 	{
 		// Probe the server to test the connection
-		if (report.postURL.isSet() && !report.httpTest(report.postURL))
+		if (report.postURL.isSet() && !report.httpTest(*this, report.postURL))
 			report_.connectionWarning = true;
 	}
 }
@@ -754,7 +754,7 @@ void TattleApp::PerformPost()
 	// Could be query-only...
 	if (!report.postURL.isSet()) return;
 	
-	Report::Reply reply = report.httpPost(prompt);
+	Report::Reply reply = report.httpPost(prompt ? (wxEvtHandler&) *prompt : *this);
 
 	if (reply.valid())
 	{

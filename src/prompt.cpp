@@ -12,6 +12,7 @@
 #include <wx/stattext.h>
 #include <wx/statline.h>
 #include <wx/sizer.h>
+#include <wx/msw/winundef.h>
 
 
 using namespace tattle;
@@ -83,7 +84,7 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 {
 	wxString errorMessage;
 
-	if (!reply.connected)
+	if (!reply.connected())
 	{
 		errorMessage =
 			"Failed to reach the website for the report.\nAre you connected to the internet?";
@@ -98,8 +99,24 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 		}
 		else
 		{
-			errorMessage += wxString::Format(wxT("HTTP status %i / WXE #%i"),
-				int(reply.statusCode), int(reply.error));
+			switch (reply.requestState)
+			{
+			case wxWebRequest::State_Idle: errorMessage += "Request was not initiated (Idle)"; break;
+			case wxWebRequest::State_Active: errorMessage += "Request was not finished (Active)"; break;
+			case wxWebRequest::State_Cancelled: errorMessage += "Request was cancelled"; break;
+			case wxWebRequest::State_Failed:
+				if (reply.statusCode)
+					errorMessage += wxString::Format(wxT("Request failed (status %i)"), int(reply.statusCode));
+				else
+					errorMessage += "Request failed (no connection to server)";
+				break;
+			case wxWebRequest::State_Unauthorized:
+				errorMessage += wxString::Format(wxT("Request unauthorized (status %i)"), int(reply.statusCode));
+				break;
+			case wxWebRequest::State_Completed:
+				errorMessage += wxString::Format(wxT("Request completed with status %i"), int(reply.statusCode));
+				break;
+			}
 		}
 	}
 	else if (!reply.valid())

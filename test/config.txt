@@ -1,5 +1,5 @@
--up "http://interactopia.com/mothership/error_post.php"
--uq "http://interactopia.com/mothership/error_query.php"
+-up "https://interactopia.com/mothership/error_post.php"
+-uq "https://interactopia.com/mothership/error_query.php"
 
 -aq "app-error-hash=FAKERS"
 -a  "app-time-local=NOW"

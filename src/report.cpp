@@ -123,16 +123,10 @@ void Report::readFiles()
 
 
 
-void Report::encodePost(wxHTTP &http, bool preQuery) const
+void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool preQuery) const
 {
-	// Boundary with 12-digit random number
-	std::string boundary_id = "tattle-boundary-";
-	for (unsigned i = 0; i < 12; ++i) boundary_id.push_back('0' + (std::rand()%10));
-	boundary_id += "--";
-	
+	// Boundary beginning with two hyphen-minus characters
 	std::string boundary_divider = "\r\n--" + boundary_id + "\r\n";
-	
-	wxMemoryBuffer postBuffer;
 	
 	for (Parameters::const_iterator i = params.begin(); true; ++i)
 	{
@@ -194,8 +188,6 @@ void Report::encodePost(wxHTTP &http, bool preQuery) const
 	
 	postBuffer.AppendByte('\0');
 	cout << "HTTP Post Buffer:" << endl << ((const char*) postBuffer.GetData()) << endl;
-	
-	http.SetPostBuffer(wxT("multipart/form-data; boundary=\"") + wxString(boundary_id) + ("\""), postBuffer);
 }
 
 static void AppendPercentEncoded(wxString &str, char c)
