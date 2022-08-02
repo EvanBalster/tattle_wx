@@ -21,7 +21,7 @@ project(tattle)
 file(GLOB TATTLE_HEADERS src/*.h)
 file(GLOB TATTLE_SOURCES src/*.cpp)
 
-add_executable(tattle WIN32 ${TATTLE_HEADERS} ${TATTLE_SOURCES})
+add_executable(tattle WIN32 MACOSX_BUNDLE ${TATTLE_HEADERS} ${TATTLE_SOURCES})
 
 if (WIN32)
 	#set_property(TARGET tattle PROPERTY

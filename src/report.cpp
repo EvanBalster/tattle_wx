@@ -126,7 +126,7 @@ void Report::readFiles()
 void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool preQuery) const
 {
 	// Boundary beginning with two hyphen-minus characters
-	std::string boundary_divider = "\r\n--" + boundary_id + "\r\n";
+	wxString boundary_divider = "\r\n--" + boundary_id + "\r\n";
 	
 	for (Parameters::const_iterator i = params.begin(); true; ++i)
 	{

@@ -313,7 +313,8 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 
 		auto finalState = run_request_with_timeout(handler, webRequest, request_time_limit);
 
-		reply.processResponse(finalState, webRequest.GetResponse(), url);
+		wxWebResponse response = webRequest.GetResponse();
+		reply.processResponse(finalState, response, url);
 
 		webRequest.Cancel(); // in case it didn't go through
 

@@ -106,15 +106,15 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 			case wxWebRequest::State_Cancelled: errorMessage += "Request was cancelled"; break;
 			case wxWebRequest::State_Failed:
 				if (reply.statusCode)
-					errorMessage += wxString::Format(wxT("Request failed (status %i)"), int(reply.statusCode));
+					errorMessage += wxString::Format(wxT("Request failed (status %d)"), int(reply.statusCode));
 				else
 					errorMessage += "Request failed (no connection to server)";
 				break;
 			case wxWebRequest::State_Unauthorized:
-				errorMessage += wxString::Format(wxT("Request unauthorized (status %i)"), int(reply.statusCode));
+				errorMessage += wxString::Format(wxT("Request unauthorized (status %d)"), int(reply.statusCode));
 				break;
 			case wxWebRequest::State_Completed:
-				errorMessage += wxString::Format(wxT("Request completed with status %i"), int(reply.statusCode));
+				errorMessage += wxString::Format(wxT("Request completed with status %d"), int(reply.statusCode));
 				break;
 			}
 		}

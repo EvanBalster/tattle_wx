@@ -135,7 +135,7 @@ namespace tattle
 
 			wxString full() const
 			{
-				return scheme + "://" + host + ":" + wxString::Format(wxT("%i"),port) + "/" + path;
+				return scheme + "://" + host + ":" + wxString::Format(wxT("%d"),int(port)) + "/" + path;
 			}
 		};
 		
