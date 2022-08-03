@@ -39,35 +39,37 @@ Typically, Tattle displays a UI which will, at minimum, allow the user to either
 
 Version 0.4 of the tattle command-line interface.  Note that parameters containing an `=` should be supplied as a single string.
 
-| Flag  | Long Form        | Argument          | Effect |
-|-------|------------------|-------------------|--------|
-| `-h`  | `--help`         | _none_            | Displays help on command-line parameters. |
-| `-up` | `--url-post`     | `<url>`           | URL for posting error reports.  **At least one URL is required.** |
-| `-uq` | `--url-query`    | `<url>`           | URL for advance query. |
-| `-s`  | `--silent`       | _none_            | Post a report without displaying any UI. |
-| `-c`  | `--config-file`  | `<fname>`         | Specify a configuration file containing more of these options. |
-| `-a`  | `--arg`          | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
-| `-aq` | `--arg-query`    | `<param>=<value>` | As `-a` but also included in advance query. |
-| `-ft` | `--file`         | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
-| `-fb` | `--file-binary`  | `<param>=<fname>` | Upload a binary file.  (Different content-type.) |
-| `-tb` | `--trunc-begin`  | `<param>=<size>`  | Truncate a file parameter.  Include at least the first N bytes. |
-| `-te` | `--trunc-end`    | `<param>=<size>`  | As `-tb` but preserve the last N bytes.  Combines with `-tb`! |
-| `-tn` | `--trunc-note`   | `<param>=<text>`  | A line of text marking the truncation. |
-| `-pt` | `--title`        | `<text>`          | A title for the prompt window. |
-| `-pm` | `--message`      | `<text>`          | A message appearing at the top of the prompt window. |
-| `-px` | `--technical`    | `<text>`          | Technical info appearing in the prompt window. |
-| `-ps` | `--label-send`   | `<text>`          | Label for the 'Send Report' button. |
-| `-pc` | `--label-cancel` | `<text>`          | Label for the 'Don't Send Report' button. |
-| `-pv` | `--label-view`   | `<text>`          | Label for the 'View Data' button.  (Enable with `-v`) |
-| `-i`  | `--field`        | `<param>=<label>` | Define a single-line field for `<param>`, with instructive label. |
-| `-im` | `--field-multi`  | `<param>=<label>` | Define a multi-line field. |
-| `-id` | `--field-default`| `<param>=<value>` | Define a default value for the field corresponding to `<param>`. |
-| `-ih` | `--field-hint`   | `<param>=<hint>`  | Provide a hint message for an empty `-pf` parameter. |
-| `-v`  | `--view-data`    | _none_            | Enable 'View Data' dialog so users can see report contents. |
-| `-vd` | `--view-dir`     | `<path>`          | A folder linked from the 'View Data' dialog. |
-| `-wi` | `--icon`         | `<system icon>`   | Set system icon: information, error, warning, question, help or tip. |
-| `-wp` | `--show-progress`| _none_            | Enable progress bars; useful for large uploads. |
-| `-wt` | `--stay-on-top`  | _none_            | Tattle's windows stay on top of all others. |
+| Flag  | Long Form         | Argument          | Effect                                   |
+| ----- | ----------------- | ----------------- | ---------------------------------------- |
+| `-h`  | `--help`          | _none_            | Displays help on command-line parameters. |
+| `-up` | `--url-post`      | `<url>`           | URL for posting error reports.           |
+| `-uq` | `--url-query`     | `<url>`           | URL for advance query.                   |
+|       |                   |                   | **at least one of the above options is required.** |
+| `-s`  | `--silent`        | _none_            | Post a report without displaying any UI. |
+| `-c`  | `--config-file`   | `<fname>`         | Parse additional arguments from a file.  |
+| `-l`  | `--log`           | `<fname>`         | Set log file location (default: no logging). |
+| `-a`  | `--arg`           | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
+| `-aq` | `--arg-query`     | `<param>=<value>` | As `-a` but also included in advance query. |
+| `-ft` | `--file`          | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
+| `-fb` | `--file-binary`   | `<param>=<fname>` | Upload a binary file.  (Different content-type.) |
+| `-tb` | `--trunc-begin`   | `<param>=<size>`  | Truncate a file parameter.  Include at least the first N bytes. |
+| `-te` | `--trunc-end`     | `<param>=<size>`  | As `-tb` but preserve the last N bytes.  Combines with `-tb`! |
+| `-tn` | `--trunc-note`    | `<param>=<text>`  | A line of text marking the truncation.   |
+| `-pt` | `--title`         | `<text>`          | A title for the prompt window.           |
+| `-pm` | `--message`       | `<text>`          | A message appearing at the top of the prompt window. |
+| `-px` | `--technical`     | `<text>`          | Technical info appearing in the prompt window. |
+| `-ps` | `--label-send`    | `<text>`          | Label for the 'Send Report' button.      |
+| `-pc` | `--label-cancel`  | `<text>`          | Label for the 'Don't Send Report' button. |
+| `-pv` | `--label-view`    | `<text>`          | Label for the 'View Data' button.  (Enable with `-v`) |
+| `-i`  | `--field`         | `<param>=<label>` | Define a single-line field with instructive label. |
+| `-im` | `--field-multi`   | `<param>=<label>` | Define a multi-line field for `param`.   |
+| `-id` | `--field-default` | `<param>=<value>` | Define a default value for `<param>`.    |
+| `-ih` | `--field-hint`    | `<param>=<hint>`  | Provide a hint message for empty `-i` fields. |
+| `-v`  | `--view-data`     | _none_            | Enable user to view report contents.     |
+| `-vd` | `--view-dir`      | `<path>`          | A folder linked from the 'View Data' dialog. |
+| `-wi` | `--icon`          | `<system icon>`   | Set icon: info, error, warn, question, help or tip. |
+| `-wp` | `--show-progress` | _none_            | Enable progress bars; useful for large uploads. |
+| `-wt` | `--stay-on-top`   | _none_            | Tattle's windows stay on top of all others. |
 
 ## This implementation
 
