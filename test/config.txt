@@ -13,6 +13,7 @@
 -im "user_desc=Use this space to tell us what happened:"
 -i "user_email=Your E-mail:"
 -ih "user_email=you@example.com (optional)"
+-is "user_email"
 
 -v
 

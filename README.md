@@ -16,15 +16,16 @@ Step-by-step:
 1. Parse Configuration (see below)
   * Includes the command-line and any configuration files.
   * This builds the parameter list.
-2. Read files into memory
-  * This is done immediately.  (in case files change)
-  * File truncation is applied here, limiting memory usage.
+  * Files are truncated and read into memory at this stage, in case they would subsequently change.
+2. ❌ Consent to Query *(`-s` or `-sq` bypasses)*
+   * ❌ Ask the user for consent to send basic information to the server.
+   * This prompt is only shown to the user once per category.
 3. Query _(`-uq` enables)_
-  * Fire HTTP GET request, with `-aq` parameters included in the URL query.
+  * Fire HTTP GET request, with `-aq` parameters encoded as multipart POST data.
   * If the server responds with text or a link, this is displayed to the user.
   * _The server may specify that execution should stop here.  (Not yet implemented!)_
   * This step happens only if the `-uq` flag is passed.
-4. Prompt _(`-s` bypasses)_
+4. Prompt + Consent to Post _(`-s` bypasses)_
   * Display a prompt to the user, which may include an informative message and input fields.
   * The user may proceed using the **send** button, or abort using the **cancel** button.
   * The user may view the contents of the error report with the **view data** button.
@@ -37,50 +38,63 @@ Typically, Tattle displays a UI which will, at minimum, allow the user to either
 
 ## Configuration (command-line arguments)
 
-Version 0.4 of the tattle command-line interface.  Note that parameters containing an `=` should be supplied as a single string.
+Version 0.5 of the tattle command-line interface.  Note that parameters containing an `=` should be supplied as a single string.
 
-| Flag  | Long Form         | Argument          | Effect                                   |
-| ----- | ----------------- | ----------------- | ---------------------------------------- |
-| `-h`  | `--help`          | _none_            | Displays help on command-line parameters. |
-| `-up` | `--url-post`      | `<url>`           | URL for posting error reports.           |
-| `-uq` | `--url-query`     | `<url>`           | URL for advance query.                   |
-|       |                   |                   | **at least one of the above options is required.** |
-| `-s`  | `--silent`        | _none_            | Post a report without displaying any UI. |
-| `-c`  | `--config-file`   | `<fname>`         | Parse additional arguments from a file.  |
-| `-l`  | `--log`           | `<fname>`         | Set log file location (default: no logging). |
-| `-a`  | `--arg`           | `<param>=<value>` | Specify argument string `<value>` for parameter `<param>`. |
-| `-aq` | `--arg-query`     | `<param>=<value>` | As `-a` but also included in advance query. |
-| `-ft` | `--file`          | `<param>=<fname>` | Upload a text file `<fname>` for parameter `<param>`. |
-| `-fb` | `--file-binary`   | `<param>=<fname>` | Upload a binary file.  (Different content-type.) |
-| `-tb` | `--trunc-begin`   | `<param>=<size>`  | Truncate a file parameter.  Include at least the first N bytes. |
-| `-te` | `--trunc-end`     | `<param>=<size>`  | As `-tb` but preserve the last N bytes.  Combines with `-tb`! |
-| `-tn` | `--trunc-note`    | `<param>=<text>`  | A line of text marking the truncation.   |
-| `-pt` | `--title`         | `<text>`          | A title for the prompt window.           |
-| `-pm` | `--message`       | `<text>`          | A message appearing at the top of the prompt window. |
-| `-px` | `--technical`     | `<text>`          | Technical info appearing in the prompt window. |
-| `-ps` | `--label-send`    | `<text>`          | Label for the 'Send Report' button.      |
-| `-pc` | `--label-cancel`  | `<text>`          | Label for the 'Don't Send Report' button. |
-| `-pv` | `--label-view`    | `<text>`          | Label for the 'View Data' button.  (Enable with `-v`) |
-| `-i`  | `--field`         | `<param>=<label>` | Define a single-line field with instructive label. |
-| `-im` | `--field-multi`   | `<param>=<label>` | Define a multi-line field for `param`.   |
-| `-id` | `--field-default` | `<param>=<value>` | Define a default value for `<param>`.    |
-| `-ih` | `--field-hint`    | `<param>=<hint>`  | Provide a hint message for empty `-i` fields. |
-| `-v`  | `--view-data`     | _none_            | Enable user to view report contents.     |
-| `-vd` | `--view-dir`      | `<path>`          | A folder linked from the 'View Data' dialog. |
-| `-wi` | `--icon`          | `<system icon>`   | Set icon: info, error, warn, question, help or tip. |
-| `-wp` | `--show-progress` | _none_            | Enable progress bars; useful for large uploads. |
-| `-wt` | `--stay-on-top`   | _none_            | Tattle's windows stay on top of all others. |
+Items marked with ❌ are not yet implemented.
+
+| Abbr  | Flag/Option               | Argument          | Effect                                                       |
+| ----- | ------------------------- | ----------------- | ------------------------------------------------------------ |
+| `-h`  | `--help`                  | _none_            | Displays help on command-line parameters.                    |
+| `-c`  | `--config-file`           | `<fname>`         | Supply additional arguments using a file.<br />Helps avoid command-line limits on Windows. |
+|       | <u>**Service URLs**</u>   |                   | *at least one URL is required; it may be placed in a config file.* |
+| `-uq` | `--url-query`             | `<url>`           | URL for initial server query.                                |
+| `-up` | `--url-post`              | `<url>`           | URL for posting error reports.                               |
+|       | **<u>Data & Privacy</u>** |                   |                                                              |
+| `-v`  | `--view-data`             |                   | Enable user to view content from the prompt.                 |
+| `-vd` | `--view-dir`              | `<path>`          | A folder linked from the 'View Data' dialog.<br />This option is taken to imply `-v`. |
+| `-cs` | `--cookies`               | `<path>`          | ❌ Directory for Tattle's persistent data.<br />Enables persistent inputs, consent & server cookies. |
+| `-l`  | `--log`                   | `<fname>`         | Set Tattle's log file location (default: no logging).        |
+| `-sq` | `--silent-query`          |                   | Query without requiring user consent.                        |
+| `-s`  | `--silent`                |                   | Query and post without displaying any UI.<br />⚠ **Bypasses all user consent**. |
+|       | <u>**Data Content**</u>   |                   |                                                              |
+|       |                           |                   |                                                              |
+| `-a`  | `--arg`                   | `<key>=<value>`   | Specify argument string `<value>` for parameter `<key>`.     |
+| `-aq` | `--arg-query`             | `<key>=<value>`   | As `-a` but also included in initial query.                  |
+| `-at` | `--arg-category`          | `<key>=<value>`   | ❌ Category of operations (eg, error or update).<br />Used as a key for tracking user's consent to query.<br />Otherwise behaves as `--arg-query`. |
+| `-ai` | `--arg-id`                | `<key>=<value>`   | ❌ Identity within this operation's category.<br />Used for tracking "don't show me this again".<br />Otherwise behaves as `--arg-query`. |
+| `-ft` | `--file`                  | `<key>=<fname>`   | Upload a text file `<fname>` for parameter `<key>`.          |
+| `-fb` | `--file-binary`           | `<key>=<fname>`   | Upload a binary file.  (Different content-type.)             |
+| `-tb` | `--trunc-begin`           | `<key>=<size>`    | Truncate a file parameter.<br />Includes at least the first N bytes. |
+| `-te` | `--trunc-end`             | `<key>=<size>`    | As `-tb` but preserve the last N bytes.<br />Combines with `-tb`! |
+| `-tn` | `--trunc-note`            | `<key>=<text>`    | A line of text inserted at the truncation.                   |
+|       | <u>**Prompt Config**</u>  |                   |                                                              |
+| `-pt` | `--title`                 | `<text>`          | A title for the prompt window.                               |
+| `-pm` | `--message`               | `<text>`          | A message appearing at the top of the prompt window.         |
+| `-px` | `--technical`             | `<text>`          | Technical info appearing in the prompt window.               |
+| `-wi` | `--icon`                  | `<system icon>`   | May be `info`, `error`, `warn`, `question`, `help` or `tip`. |
+| `-wp` | `--show-progress`         |                   | Enable progress bars; useful for large uploads.              |
+| `-wt` | `--stay-on-top`           |                   | Tattle's windows stay on top of all others.                  |
+| `-ps` | `--label-send`            | `<text>`          | Label for the 'Send Report' button.                          |
+| `-pc` | `--label-cancel`          | `<text>`          | Label for the 'Don't Send Report' button.                    |
+| `-pv` | `--label-view`            | `<text>`          | Label for the 'View Data' button.  (Enable with `-v`)        |
+|       | **<u>Prompt Inputs</u>**  |                   |                                                              |
+| `-i`  | `--field`                 | `<key>=<label>`   | Define a single-line field with instructive label.           |
+| `-im` | `--field-multi`           | `<key>=<label>`   | Define a multi-line field for `param`.                       |
+| `-is` | `--field-store`           | `<key>`           | Save `<key>` for re-use in future prompts.<br />Requires data directory specified with `-d`. |
+| `-id` | `--field-default`         | `<key>=<value>`   | Define a default value for `<key>`.                          |
+| `-ih` | `--field-hint`            | `<key>=<hint>`    | Provide a hint message for empty `-i` fields.                |
+| `-iw` | `--field-wanted`          | `<key>=<nessage>` | ❌ Prompt the user for confirmation if a field is left empty. |
 
 ## This implementation
 
-**tattle_wx** is based on the wxWidgets framework.  This enables portability to Windows, Mac OS X and Linux (and potentially others).  It adheres to the C++98 standard.
+**tattle_wx** is based on the wxWidgets framework.  This enables portability to Windows, Mac OS X and Linux (and potentially others).  It adheres to the C++11 standard.
 
 The author is interested in alternative implementations of this utility, in particular OS-native versions (which could minimize its footprint) and mobile versions.
 
 
 ## Building Tattle/wx
 
-It should be possible to build Tattle with wxWidgets 2 or 3 and any C++98-compatible compiler, but I have not tested extensively.  It depends on wxWidgets' **core**, **base**, **net** and **advanced** modules.
+It should be possible to build Tattle with wxWidgets 2 or 3 and any C++98-compatible compiler, but I have not tested extensively.  It depends on wxWidgets' **core**, **base** and **net** modules.
 
 Under OSX/Clang with the latest wxWidgets it may be necessary to define FORCE_TR1_TYPE_TRAITS depending on the runtime libraries and flags used to compile wxWidgets and the applications itself.
 
@@ -101,7 +115,7 @@ Things I may investigate in the future:
 * Nicer format for Tattle's configuration (such as XML)
 * Language files for localizing the UI
 * Persistent fields (such as user's E-mail address)
-* Compressed uploading.
+* GZIP-compressed uploading.
 * A way to save compiled reports to disk.
 * Possibly some built in "automatic" parameters
   * System description

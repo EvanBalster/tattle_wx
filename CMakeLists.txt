@@ -42,6 +42,8 @@ find_package(wxWidgets CONFIG REQUIRED)
 # target_include_directories(tattle PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(tattle PRIVATE wx::core wx::base wx::net)
 
+target_include_directories(tattle PUBLIC "thirdparty/include")
+
 
 # Solution name
 project(tattle)

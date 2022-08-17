@@ -14,6 +14,8 @@
 #include <iostream>
 #include <list>
 
+#include <nlohmann/json.hpp>
+
 #if FORCE_TR1_TYPE_TRAITS
     // Hack to deal with STL weirdness on OS X
 	#include <wx/setup.h>
@@ -29,6 +31,7 @@
 #include <wx/file.h>
 #include <wx/dialog.h>
 #include <wx/textctrl.h>
+#include <wx/checkbox.h>
 #include <wx/msgdlg.h>
 #include <wx/artprov.h>
 #include <wx/hyperlink.h>
@@ -42,6 +45,34 @@ namespace tattle
 {
 	using std::cout;
 	using std::endl;
+
+	using Json = nlohmann::json;
+
+	using JsonPointer = nlohmann::json::json_pointer;
+
+
+	/*
+	*	Failsafe JSON getter methods.
+	*/
+	template<typename T>
+	T JsonMember(const Json &json, const Json::object_t::key_type &key, T &&defaultValue)
+	{
+		try {return json.value(key, std::forward<T>(defaultValue));}
+		catch (Json::type_error &) {return defaultValue;}
+	}
+	inline std::string JsonMember(const Json &json, const Json::object_t::key_type &key, const char *default)
+		{return JsonMember<std::string>(json, key, default);}
+
+	template<typename T>
+	T JsonFetch(const Json& json, const Json::json_pointer& ptr, const T &defaultValue)
+		{try {return json.value(ptr, defaultValue);} catch (Json::type_error &) {return defaultValue;}}
+	template<typename T>
+	T JsonFetch(const Json& json, const char *ptr, const T &defaultValue)
+		{return JsonFetch(json, Json::json_pointer(ptr), defaultValue);}
+	
+	inline std::string JsonFetch(const Json& json, const char *ptr, const char *defaultValue)
+		{return JsonFetch<std::string>(json, Json::json_pointer(ptr), defaultValue);}
+
 
 	/*
 		Workflow control calls
@@ -86,30 +117,30 @@ namespace tattle
             Parameter();
             
             PARAM_TYPE  type;
-            wxString    name;
-			
-			// Include in pre-query
-			bool        preQuery;
-			
-            // Filename if applicable
-            wxString    fname;
-            
-            // String value for arguments & prompts
-            wxString    value;
+            std::string name;
+			bool        preQuery;  // Include in pre-query ?
+
+			Json        json;
+
+			std::string path()  const    {return JsonMember(json, "path", "");}
+
+			std::string value() const    {if (json.is_string()) return json; else return JsonMember(json, "value", "");}
+
+			bool        persist    () const    {return JsonMember(json, "persist", false);}
+
+			std::string label      () const    {return JsonMember(json, "label", "");}
+			std::string placeholder() const    {return JsonMember(json, "placeholder", "");}
+
+			std::string content_info() const    {return JsonMember(json, "content_info", "");}
+
+			unsigned    truncate_begin() const    {return JsonFetch(json, "/truncate/0", 0u);}
+			unsigned    truncate_end  () const    {return JsonFetch(json, "/truncate/1", 0u);}
+			std::string truncate_note () const    {return JsonFetch(json, "/truncate/2", "(trimmed)");}
+
+			std::string input_warning() const    {return JsonMember(json, "input_warning", "");}
 			
 			// File contents
 			wxMemoryBuffer fileContents;
-			
-			// Fields for user prompts only
-            wxString    label, hint;
-			
-			// File truncation parameters
-			unsigned    trimBegin, trimEnd;
-			wxString    trimNote;
-            
-            // MIME content type and encoding information, if applicable.
-            //   If non-empty, will be added to multipart POST request.
-            std::string contentInfo;
         };
         
         using Parameters = std::list<Parameter>;
@@ -165,6 +196,7 @@ namespace tattle
 			
 			wxString       raw;
 			wxString       title, message, link;
+			wxString       jsonValues;
 			SERVER_COMMAND command;
 			wxArtID        icon;
 			
@@ -213,52 +245,95 @@ namespace tattle
     public: // members
 		void httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &reply, wxProgressDialog *dlg, bool isQuery) const;
 
-		ParsedURL postURL, queryURL;
-        
-		wxString viewPath;
+		Json config;
 
-		wxString logFile;
+		Parameters params;
+
+		std::string report_type() const    {return JsonFetch(config, "/data/$type", "");}
+		std::string report_id  () const    {return JsonFetch(config, "/data/$id", "");}
+
+		const ParsedURL& url_post()  const;
+		const ParsedURL& url_query() const;
+
+		bool enable_server_values() const    {return JsonFetch(config, "/config/server_values", true);}
+
+		std::string path_reviewData() const    {return JsonFetch(config, "/paths/review", "");}
+		std::string path_tattleData() const    {return JsonFetch(config, "/paths/state", "");}
+		std::string path_tattleLog()  const    {return JsonFetch(config, "/paths/log", "");}
 		
 		bool connectionWarning;
-        
-        Parameters params;
+
+	private:
+		mutable struct
+		{
+			bool parsed = false;
+			ParsedURL post, query;
+		}
+			url_cache;
+
+		void _parse_urls() const;
     };
 
 	struct UIConfig
 	{
-		UIConfig();
+		UIConfig(Json &config);
 
-		wxString promptTitle;
-		wxString promptMessage;
-		wxString promptTechnical;
+		Json& config;
 
-		wxString labelSend, labelCancel, labelView;
+		std::string promptTitle    () const    {return JsonFetch(config, "/gui/title", "Report");}
+		std::string promptMessage  () const    {return JsonFetch(config, "/gui/message", "Use this form to send us a report.");}
+		std::string promptTechnical() const    {return JsonFetch(config, "/gui/technical", "");}
+		std::string labelSend      () const    {return JsonFetch(config, "/gui/label_send", "");}
+		std::string labelCancel    () const    {return JsonFetch(config, "/gui/label_cancel", "");}
+		std::string labelReview    () const    {return JsonFetch(config, "/gui/label_review", "");}
 
-		bool viewEnabled;
-		bool stayOnTop;
-		bool showProgress;
-		bool silent;
+		bool stayOnTop   () const    {return JsonFetch(config, "/gui/stay_on_top", false);}
+		bool enableReview() const    {return JsonFetch(config, "/gui/review", false);}
+		bool showProgress() const    {return JsonFetch(config, "/gui/progress_bar", false);}
+		bool silentQuery () const    {return JsonFetch(config, "/gui/query", "default") == "silent";}
+		bool silentPost  () const    {return JsonFetch(config, "/gui/post",  "default") == "silent";}
 
-		unsigned marginSm, marginMd, marginLg; // defaults to 5, 8, 10
+		// Margin sizes.
+		unsigned marginSm() const;
+		unsigned marginMd() const;
+		unsigned marginLg() const;
 
-		wxArtID defaultIcon; // wxART_ERROR
-
+		wxArtID defaultIcon() const    {return GetIconID(JsonFetch(config, "/gui/icon", ""));}
 
 		wxArtID GetIconID(wxString tattleName) const;
 
 
 		int style() const
 		{
-			return (stayOnTop ? wxSTAY_ON_TOP : 0);
+			return (stayOnTop() ? wxSTAY_ON_TOP : 0);
 		}
+	};
+
+	/*
+	*	Storage file for user input, user consent and server cookies.
+	*/
+	struct PersistentData
+	{
+	public:
+		const Json &data;
+
+		PersistentData();
+
+		bool load      (wxString path);
+		bool mergePatch(const Json &patch);
+
+	private:
+		wxString _path;
+		Json     _data;
 	};
 
 	/*
 		Globally shared report state and UI configuration.
 			Only one report is made per invocation of Tattle.
 	*/
-	extern const Report   &report;
-	extern const UIConfig &uiConfig;
+	extern       PersistentData &persist;
+	extern const Report         &report;
+	extern const UIConfig       &uiConfig;
     
     /*
 		A prompt window which allows the user to enter data and submit the report.
@@ -304,6 +379,8 @@ namespace tattle
         Fields  fields;
 		
 		wxFont fontTechnical;
+
+		wxCheckBox *dontShowAgainBox = nullptr;
         
         wxDECLARE_EVENT_TABLE();
     };

@@ -36,8 +36,8 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 	wxSize badgeSize(32, 32);
 #endif
 
-	wxIcon iconInfo = wxArtProvider::GetIcon(iconArtID.length() ? iconArtID : uiConfig.defaultIcon);
-	wxBitmap bmpInfo = wxArtProvider::GetBitmap(iconArtID.length() ? iconArtID : uiConfig.defaultIcon, "wxART_OTHER_C", badgeSize);
+	wxIcon iconInfo = wxArtProvider::GetIcon(iconArtID.length() ? iconArtID : uiConfig.defaultIcon());
+	wxBitmap bmpInfo = wxArtProvider::GetBitmap(iconArtID.length() ? iconArtID : uiConfig.defaultIcon(), "wxART_OTHER_C", badgeSize);
 
 	SetIcon(iconInfo);
 
@@ -46,14 +46,14 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 	{
 		wxBoxSizer *display = new wxBoxSizer(wxHORIZONTAL);
 
-		display->Add(new wxStaticBitmap(this, -1, bmpInfo), 0, wxTOP|wxLEFT, uiConfig.marginLg);
+		display->Add(new wxStaticBitmap(this, -1, bmpInfo), 0, wxTOP|wxLEFT, uiConfig.marginLg());
 
-		display->AddSpacer(uiConfig.marginSm);
+		display->AddSpacer(uiConfig.marginSm());
 
 		{
 			wxBoxSizer *textArea = new wxBoxSizer(wxVERTICAL);
 
-			textArea->AddSpacer(uiConfig.marginSm);
+			textArea->AddSpacer(uiConfig.marginSm());
 
 			message.Replace("\r", "");
 
@@ -80,9 +80,9 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 			{
 				tHeader->SetFont(wxFontInfo(12).AntiAliased()); //Family(wxFONTFAMILY_SWISS)
 				tHeader->SetForegroundColour(wxTheColourDatabase->Find("MEDIUM BLUE"));
-				textArea->Add(tHeader, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd);
+				textArea->Add(tHeader, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd());
 			}
-			textArea->Add(tContent, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd);
+			textArea->Add(tContent, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd());
 
 			if (link.length())
 			{
@@ -94,7 +94,7 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 
 				wxHyperlinkCtrl *anchor = new wxHyperlinkCtrl(this, wxID_OPEN, shortLink, link);
 
-				textArea->Add(anchor, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginMd);
+				textArea->Add(anchor, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginMd());
 			}
 
 			display->Add(textArea, 0);
@@ -110,12 +110,12 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 
 		if (link.length())
 		{
-			actionRow->Add(dfl = new wxButton(this, wxID_OPEN), 1, wxALL, uiConfig.marginSm);
-			actionRow->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, uiConfig.marginSm);
+			actionRow->Add(dfl = new wxButton(this, wxID_OPEN), 1, wxALL, uiConfig.marginSm());
+			actionRow->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, uiConfig.marginSm());
 		}
 		else
 		{
-			actionRow->Add(dfl = new wxButton(this, wxID_OK), 1, wxALL, uiConfig.marginSm);
+			actionRow->Add(dfl = new wxButton(this, wxID_OK), 1, wxALL, uiConfig.marginSm());
 		}
 
 		if (dfl)
@@ -124,7 +124,7 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 			dfl->SetFocus();
 		}
 
-		sizerTop->Add(actionRow, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginSm);
+		sizerTop->Add(actionRow, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginSm());
 	}
 
 	SetSizerAndFit(sizerTop);

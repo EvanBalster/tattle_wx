@@ -31,45 +31,51 @@ namespace tattle
 
 		CMD_HELP          ("h", "help",           "Displays help on command-line parameters.")
 
-		CMD_OPTION_STRING ("up", "url-post",      "<url>    HTTP URL for posting report.  Required.")
+		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>  Config file with more arguments.")
+		CMD_OPTION_STRINGS("cs", "cookie-store",  "<fname>  Saves user consent, stored inputs & cookies.")
+		CMD_OPTION_STRINGS("ct", "category",      "<type>:<id>")
+
+		CMD_OPTION_STRING ("up", "url-post",      "<url>    HTTP URL for posting report. Either -up or -uq is required.")
 		CMD_OPTION_STRING ("uq", "url-query",     "<url>    HTTP URL for pre-query.")
 
 		CMD_SWITCH        ("s",  "silent",        "Bypass prompt; upload without user input.")
+		CMD_SWITCH        ("sq", "silent-query",  "Bypass prompt for user consent to query.")
 		
 		CMD_SWITCH        ("wt", "stay-on-top",   "Make the Tattle GUI stay on top.")
 		CMD_SWITCH        ("wp", "show-progress", "Show progress bar dialogs.")
 		CMD_OPTION_STRING ("wi", "icon",          "Set a standard icon: information, warning or error.")
 		//CMD_SWITCH       ("w", "parent-window",   "Make the prompt GUI stay on top.")
 		
-		CMD_OPTION_STRINGS("c",  "config-file",   "<fname>              Config file with more arguments.")
-		CMD_OPTION_STRINGS("l",  "log",           "<fname>              Append information to log file.")
+		CMD_OPTION_STRINGS("l",  "log",           "<fname>        Append information to log file.")
 
-		CMD_OPTION_STRINGS("a",  "arg",           "<parameter>=<value>  Argument string.")
-		CMD_OPTION_STRINGS("aq", "arg-query",     "<parameter>=<value>  Argument string used in pre-query.")
+		CMD_OPTION_STRINGS("a",  "arg",           "<key>=<value>  Argument string.")
+		CMD_OPTION_STRINGS("aq", "arg-query",     "<key>=<value>  Argument string used in pre-query.")
 		
-		CMD_OPTION_STRINGS("ft", "file",          "<parameter>=<fname>  Argument text file.")
-		CMD_OPTION_STRINGS("fb", "file-binary",   "<parameter>=<fname>  Argument file, binary.")
+		CMD_OPTION_STRINGS("ft", "file",          "<key>=<fname>  Argument text file.")
+		CMD_OPTION_STRINGS("fb", "file-binary",   "<key>=<fname>  Argument file, binary.")
 		
-		CMD_OPTION_STRINGS("tb", "trunc-begin",   "<param>=<N>          Attach first N bytes of file.")
-		CMD_OPTION_STRINGS("te", "trunc-end",     "<param>=<N>          Attach last N bytes of file.")
-		CMD_OPTION_STRINGS("tn", "trunc-note",    "<param>=<text>       Line of text marking truncation.")
+		CMD_OPTION_STRINGS("tb", "trunc-begin",   "<key>=<N>      Attach first N bytes of file.")
+		CMD_OPTION_STRINGS("te", "trunc-end",     "<key>=<N>      Attach last N bytes of file.")
+		CMD_OPTION_STRINGS("tn", "trunc-note",    "<key>=<text>   Line of text marking truncation.")
 
-		CMD_OPTION_STRING ("pt", "title",         "<title>              Title of the prompt window.")
-		CMD_OPTION_STRING ("pm", "message",       "<message>            A header message summarizing the prompt.")
-		CMD_OPTION_STRING ("px", "technical",     "<plaintext>          A technical summary message.")
-		CMD_OPTION_STRING ("ps", "label-send",    "<label>              Text of the 'send' button.")
-		CMD_OPTION_STRING ("pc", "label-cancel",  "<label>              Text of the 'cancel' button.")
-		CMD_OPTION_STRING ("pv", "label-view",    "<label>              Text of the 'view data' button.")
+		CMD_OPTION_STRING ("pt", "title",         "<title>        Title of the prompt window.")
+		CMD_OPTION_STRING ("pm", "message",       "<message>      A header message summarizing the prompt.")
+		CMD_OPTION_STRING ("px", "technical",     "<plaintext>    A technical summary message.")
+		CMD_OPTION_STRING ("ps", "label-send",    "<label>        Text of the 'send' button.")
+		CMD_OPTION_STRING ("pc", "label-cancel",  "<label>        Text of the 'cancel' button.")
+		CMD_OPTION_STRING ("pv", "label-view",    "<label>        Text of the 'view data' button.")
 		
-		CMD_OPTION_STRINGS("i",  "field",         "<parameter>=<label>  Single-line field for user input.")
-		CMD_OPTION_STRINGS("im", "field-multi",   "<parameter>=<label>  Multi-line field.")
-		CMD_OPTION_STRINGS("id", "field-default", "<parameter>=<value>  Hint message for -uf field.")
-		CMD_OPTION_STRINGS("ih", "field-hint",    "<parameter>=<hint>   Default value for a field.")
+		CMD_OPTION_STRINGS("i",  "field",         "<key>=<label>  Single-line field for user input.")
+		CMD_OPTION_STRINGS("im", "field-multi",   "<key>=<label>  Multi-line field.")
+		CMD_OPTION_STRINGS("id", "field-default", "<key>=<value>  Hint message for -uf field.")
+		CMD_OPTION_STRINGS("ih", "field-hint",    "<key>=<hint>   Default value for a field.")
+		CMD_OPTION_STRINGS("iw", "field-warning", "<key>=<text>   Show a warning if field is left empty.")
+		CMD_OPTION_STRING ("is", "field-store",   "<key>          Save and restore the user's input.")
 
 		//CMD_OPTION_STRINGS("ts", "tech-string",   "<label>:<value>      Technical info string.")
 		//CMD_OPTION_STRINGS("tf", "tech-file",     "<label>:<fname>      Technical info as a linked file.")
-		CMD_SWITCH        ("v" , "view-data",     "                     Enable 'view data' dialog.")
-		CMD_OPTION_STRINGS("vd", "view-dir",      "<path>               Folder listed in 'view data' dialog.")
+		CMD_SWITCH        ("v" , "view-data",     "               Enable 'view data' dialog.")
+		CMD_OPTION_STRINGS("vd", "view-dir",      "<path>         Folder listed in 'view data' dialog.")
 
 		{wxCMD_LINE_NONE}
 	};
@@ -79,26 +85,22 @@ namespace tattle
 
 using namespace tattle;
 
+static PersistentData persist_;
 static Report   report_;
-static UIConfig uiConfig_;
+static UIConfig uiConfig_ = UIConfig(report_.config);
 
+PersistentData &tattle::persist = persist_;
 const Report   &tattle::report   = report_;
 const UIConfig &tattle::uiConfig = uiConfig_;
 
-UIConfig::UIConfig()
+UIConfig::UIConfig(Json & _config) :
+	config(_config)
 {
-	defaultIcon = wxART_ERROR;
-
-	silent = false;
-	labelSend = "Send Report";
-	//labelCancel = "Don't Send";
-	//labelView = "Details...";
-	stayOnTop = false;
-	showProgress = false;
-	marginSm = 5;
-	marginMd = 8;
-	marginLg = 10;
 }
+
+unsigned UIConfig::marginSm() const    {return JsonFetch(config, "/style/margin_small", 5u);}
+unsigned UIConfig::marginMd() const    {return JsonFetch(config, "/style/margin_medium", 8u);}
+unsigned UIConfig::marginLg() const    {return JsonFetch(config, "/style/margin_large", 10u);}
 
 wxArtID UIConfig::GetIconID(wxString tattleName) const
 {
@@ -158,76 +160,135 @@ public:
 		//	c2 = ((argName.length() > 2) ? char(argName[2]) : '\0');
 		
 		CMD_LINE_ERR err = CMD_ERR_NONE;
+
+
+		auto &rpJson = report_.config;
+		auto &uiJson = uiConfig_.config;
 		
 		//cout << ">>>>" << argName << " " << arg.GetStrVal() << endl;;
 
-		do
+		switch (c0)
 		{
-			if (c0 == 'l')
-			{
-				if (c1 == '\0') report_.logFile = arg.GetStrVal();
-				else            err = CMD_ERR_UNKNOWN;
-			}
-			else if (c0 == 'u')
+		case int('l'):
+			if (c1 == 0)
+				report_.config["path"]["log"] = arg.GetStrVal();
+			else
+				err = CMD_ERR_UNKNOWN;
+			break;
+
+		case int('u'):
 			{
 				/*
 					URLs
 				*/
 				if (c1 == 'p')
 				{
-					if (!report_.postURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
+					report_.config["url"]["post"] = std::string(arg.GetStrVal());
+					if (!report_.url_post().isSet()) err = CMD_ERR_BAD_URL;
 				}
 				else if (c1 == 'q')
 				{
-					if (!report_.queryURL.set(arg.GetStrVal())) err = CMD_ERR_BAD_URL;
+					report_.config["url"]["query"] = std::string(arg.GetStrVal());
+					if (!report_.url_query().isSet()) err = CMD_ERR_BAD_URL;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
-			else if (c0 == 's')
+			break;
+
+		case int('s'):
 			{
-				uiConfig_.silent = true;
+				switch (c1)
+				{
+				case 0:
+					uiConfig.config["gui"]["query"] = "silent";
+					uiConfig.config["gui"]["post"] = "silent";
+					break;
+				case int('q'): uiConfig.config["gui"]["query"] = "silent"; break;
+				case int('p'): uiConfig.config["gui"]["post"]  = "silent"; break;
+				default:
+					err = CMD_ERR_UNKNOWN;
+				}
 			}
-			else if (c0 == 'w')
+			break;
+
+		case int('w'):
 			{
-				if (c1 == 't')
+				switch (c1)
 				{
-					uiConfig_.stayOnTop = true;
+				case int('t'): uiJson["gui"]["stay_on_top"] = true; break;
+				case int('p'): uiJson["gui"]["progress_bar"] = true; break;
+				case int('i'):
+					{
+						uiJson["gui"]["icon"] = arg.GetStrVal();
+						wxArtID id = uiConfig.GetIconID(arg.GetStrVal());
+						if (!id.length()) err = CMD_ERR_PARAM_NOT_APPLICABLE;
+					}
+					break;
+				default:
+					err = CMD_ERR_UNKNOWN;
 				}
-				else if (c1 == 'p')
-				{
-					uiConfig_.showProgress = true;
-				}
-				else if (c1 == 'i')
-				{
-					wxArtID id = uiConfig.GetIconID(arg.GetStrVal());
-					if (id.length()) uiConfig_.defaultIcon = id;
-					else err = CMD_ERR_PARAM_NOT_APPLICABLE;
-				}
-				else err = CMD_ERR_UNKNOWN;
 			}
-			else if (c0 == 'c')
+			break;
+
+		case int('c'):
 			{
-				wxFile file(arg.GetStrVal());
-				if (file.IsOpened())
+				switch (c1)
 				{
-					// Read in the config file
-					wxString configFile;
-					file.ReadAll(&configFile);
-					
-					// Replace newlines with spaces
-					configFile.Replace(wxT("\r"), wxT(" "));
-					configFile.Replace(wxT("\n"), wxT(" "));
-					
-					// Run the parser (with help option disabled)
-					wxCmdLineParser parser(configFile);
-					parser.SetDesc(g_cmdLineDesc+1);
-					parser.Parse();
-					
-					success &= OnCmdLineParsed(parser);
+				case 0:
+					{
+						wxFile file(arg.GetStrVal());
+						if (file.IsOpened())
+						{
+							// Read in the config file
+							wxString configFile;
+							file.ReadAll(&configFile);
+
+							// Replace newlines with spaces
+							configFile.Replace(wxT("\r"), wxT(" "));
+							configFile.Replace(wxT("\n"), wxT(" "));
+
+							// Run the parser (with help option disabled)
+							wxCmdLineParser parser(configFile);
+							parser.SetDesc(g_cmdLineDesc+1);
+							parser.Parse();
+
+							success &= OnCmdLineParsed(parser);
+						}
+						else err = CMD_ERR_FAILED_TO_OPEN_CONFIG;
+					}
+					break;
+
+				case int('s'):
+					if (!persist.load(arg.GetStrVal()))
+						err = CMD_ERR_FAILED_TO_OPEN_FILE;
+					break;
+
+				case int('t'):
+					{
+						std::string type_id = arg.GetStrVal();
+						auto colon_pos = type_id.find_first_of(':');
+						std::string type, id;
+						if (colon_pos != std::string::npos)
+						{
+							type = type_id.substr(0, colon_pos);
+							id = type_id.substr(colon_pos+1);
+						}
+						else type = type_id;
+						Json &data = report_.config["data"];
+						if (!data.is_object()) data = Json::object({});
+						data["$type"] = type;
+						data["$id"] = id;
+					}
+					break;
+
+				default:
+					err = CMD_ERR_UNKNOWN;
 				}
-				else err = CMD_ERR_FAILED_TO_OPEN_CONFIG;
+				
 			}
-			else if (c0 == 'a')
+			break;
+
+		case int('a'):
 			{
 				// Argument string
 				wxString name, value;
@@ -239,11 +300,26 @@ public:
 				Report::Parameter param;
 				param.type = PARAM_STRING;
 				param.name = name;
-				param.value = value;
-				param.preQuery = (c1 == 'q');
-				report_.params.push_back(param);
+
+				switch (c1)
+				{
+				case 0: break;
+				case int('q'): param.preQuery = true; break;
+				default:
+					err = CMD_ERR_UNKNOWN;
+					break;
+				}
+				if (err) break;
+
+				param.json =
+				{
+					{"value", value}
+				};
+				report_.params.push_back(std::move(param));
 			}
-			else if (c0 == 'f')
+			break;
+
+		case int('f'):
 			{
 // Argument string
 				wxString name, value;
@@ -253,11 +329,11 @@ public:
 				if (report_.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
 					
 				Report::Parameter param;
-				if      (c1 == 't') {param.type = PARAM_FILE_TEXT; param.fname = value;}
-				else if (c1 == 'b') {param.type = PARAM_FILE_BIN;  param.fname = value;}
-				else err = CMD_ERR_UNKNOWN;
-				param.name = name;
-				param.fname = value;
+				if      (c1 == 't') {param.type = PARAM_FILE_TEXT;}
+				else if (c1 == 'b') {param.type = PARAM_FILE_BIN; }
+				else                {err = CMD_ERR_UNKNOWN; break;}
+
+				std::string content_info;
 
 				if (!wxFile::Access(value, wxFile::read))
 				{
@@ -266,29 +342,42 @@ public:
 				}
 				else
 				{
-					// Read the file...
+					// Probe the file...
 					wxFile file(value);
 					if (file.IsOpened())
 					{
 						if (param.type == PARAM_FILE_TEXT)
 						{
 							// Content info
-							param.contentInfo = "Content-Type: text/plain";
+							content_info = "Content-Type: text/plain";
 						}
 						else
 						{
 							// Content info
-							param.contentInfo = "Content-Type: application/octet-stream"
+							content_info = "Content-Type: application/octet-stream"
 								"\r\n"
 								"Content-Transfer-Encoding: Base64";
 						}
 					}
 					else err = CMD_ERR_FAILED_TO_OPEN_FILE;
 				}
-				
-				report_.params.push_back(param);
+
+				if (err == CMD_ERR_NONE)
+				{
+					param.json =
+					{
+						{"path", value},
+						{"content_info", content_info}
+					};
+
+					param.name = name;
+
+					report_.params.push_back(std::move(param));
+				}
 			}
-			else if (c0 == 't')
+			break;
+
+		case int('t'):
 			{
 				// Argument string
 				wxString name, value;
@@ -300,34 +389,48 @@ public:
 					{ err = CMD_ERR_PARAM_MISSING; break; }
 				if (param->type != PARAM_FILE_BIN && param->type != PARAM_FILE_TEXT)
 					{ err = CMD_ERR_PARAM_NOT_APPLICABLE; break; }
+
+				if (!param->json.contains("truncate")
+					|| !param->json["truncate"].is_array())
+				{
+					param->json["truncate"] = Json::array_t{0, 0, "(trimmed)"};
+				}
 				
 				if (c1 == 'b' || c1 == 'e')
 				{
 					long bytes = 0;
 					if (value.ToLong(&bytes) && bytes >= 0)
 					{
-						((c1 == 'b') ? param->trimBegin : param->trimEnd) = unsigned(bytes);
+						param->json["truncate"][(c1 == 'b') ? 0 : 1] = unsigned(bytes);
 					}
 					else err = CMD_ERR_BAD_SIZE;
 				}
 				else if (c1 == 'n')
 				{
-					param->trimNote = value;
+					param->json["truncate"][2] = value;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
-			else if (c0 == 'p')
+			break;
+
+		case int('p'):
 			{
 				//Prompt stuff
-				if      (c1 == 't') uiConfig_.promptTitle     = arg.GetStrVal();
-				else if (c1 == 'm') uiConfig_.promptMessage = arg.GetStrVal();
-				else if (c1 == 'x') uiConfig_.promptTechnical = arg.GetStrVal();
-				else if (c1 == 's') uiConfig_.labelSend = arg.GetStrVal();
-				else if (c1 == 'c') uiConfig_.labelCancel = arg.GetStrVal();
-				else if (c1 == 'v') uiConfig_.labelView = arg.GetStrVal();
-				else err = CMD_ERR_UNKNOWN;
+				switch (c1)
+				{
+				case int('t'): uiJson["gui"]["title"] = arg.GetStrVal(); break;
+				case int('m'): uiJson["gui"]["message"] = arg.GetStrVal(); break;
+				case int('x'): uiJson["gui"]["technical"] = arg.GetStrVal(); break;
+				case int('s'): uiJson["gui"]["label_send"] = arg.GetStrVal(); break;
+				case int('c'): uiJson["gui"]["label_cancel"] = arg.GetStrVal(); break;
+				case int('v'): uiJson["gui"]["label_review"] = arg.GetStrVal(); break;
+				default: err = CMD_ERR_UNKNOWN;
+				}
+				
 			}
-			else if (c0 == 'i')
+			break;
+
+		case int('i'):
 			{
 				if (c1 == '\0' || c1 == 'm')
 				{
@@ -339,12 +442,25 @@ public:
 
 					Report::Parameter param;
 					param.name = name;
-					param.label = label;
+					param.json =
+					{
+						{"label", label}
+					};
 					if (c1 == '\0')      param.type = PARAM_FIELD;
 					else if (c1 == 'm') param.type = PARAM_FIELD_MULTI;
-					report_.params.push_back(param);
+					report_.params.push_back(std::move(param));
 				}
-				else if (c1 == 'h' || c1 == 'd')
+				else if (c1 == 's')
+				{
+					wxString name = arg.GetStrVal();
+
+					// Value must exist
+					Report::Parameter *param = report_.findParam(name);
+					if (param == NULL) { err = CMD_ERR_PARAM_MISSING; break; }
+
+					param->json["persist"] = true;
+				}
+				else if (c1 == 'h' || c1 == 'd' || c1 == 'w')
 				{
 					wxString name, value;
 					if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
@@ -353,37 +469,57 @@ public:
 					Report::Parameter *param = report_.findParam(name);
 					if (param == NULL) { err = CMD_ERR_PARAM_MISSING; break; }
 
-					if (c1 == 'h')
+					switch (c1)
 					{
-						//Add a hint.
-						if (param->type != PARAM_FIELD) { err = CMD_ERR_PARAM_NOT_APPLICABLE; }
-						param->hint = value;
-					}
-					else if (c1 == 'd')
-					{
-						//Add a hint.
-						if (param->type != PARAM_FIELD && param->type != PARAM_FIELD_MULTI) { err = CMD_ERR_PARAM_NOT_APPLICABLE; }
-						param->value = value;
-					}
-				}
-				else err = CMD_ERR_UNKNOWN;
-			}
-			else if (c0 == 'v')
-			{
-				if (c1 == '\0')
-				{
-					uiConfig_.viewEnabled = true;
-				}
-				if (c1 == 'd')
-				{
-					report_.viewPath = arg.GetStrVal();
-				}
-				else err = CMD_ERR_UNKNOWN;
-			}
-			else err = CMD_ERR_UNKNOWN;
-		}
-		while (0);
+					case int('h'): //Add a hint.
+						if (param->type != PARAM_FIELD) err = CMD_ERR_PARAM_NOT_APPLICABLE;
+						param->json["placeholder"] = value;
+						break;
 
+					case int('d'): // Set default value.
+						if (param->type != PARAM_FIELD && param->type != PARAM_FIELD_MULTI) err = CMD_ERR_PARAM_NOT_APPLICABLE;
+						param->json["value"] = value;
+						break;
+
+					case int('w'):
+						if (param->type != PARAM_FIELD && param->type != PARAM_FIELD_MULTI) err = CMD_ERR_PARAM_NOT_APPLICABLE;
+						param->json["input_warning"] = value;
+						break;
+
+					default: err = CMD_ERR_UNKNOWN;
+					}
+				}
+				else
+				{
+					err = CMD_ERR_UNKNOWN;
+				}
+			}
+			break;
+
+		case int('v'):
+			switch (c1)
+			{
+			case 0: // -v enables review
+				uiJson["gui"]["review"] = true;
+				break;
+
+			case int('d'): // -vd: review directory
+				uiJson["gui"]["review"] = true;
+				rpJson["path"]["review"] = arg.GetStrVal();
+				break;
+
+			default:
+				err = CMD_ERR_UNKNOWN;
+			}
+			break;
+
+		default:
+			err = CMD_ERR_UNKNOWN;
+		}
+
+		/*
+		*	Handle errors.
+		*/
 		switch (err)
 		{
 		case CMD_ERR_NONE:
@@ -488,19 +624,23 @@ public:
 			stage = RS_QUERY;
 			PerformQuery();
 			if (pendingWindow) break;
+			[[fallthrough]];
 
 		case RS_QUERY:
 			stage = RS_PROMPT;
 			PerformPrompt();
 			if (pendingWindow) break;
+			[[fallthrough]];
 
 		case RS_PROMPT:
 			stage = RS_POST;
 			PerformPost();
 			if (pendingWindow) break;
+			[[fallthrough]];
 
 		case RS_POST:
 			stage = RS_DONE;
+			[[fallthrough]];
 
 		case RS_DONE:
 			if (prompt)
@@ -674,7 +814,7 @@ bool TattleApp::OnInit()
 		
 	bool badCmdLine = false;
 		
-	if (!report.postURL.isSet() && !report.queryURL.isSet())
+	if (!report.url_post().isSet() && !report.url_query().isSet())
 	{
 		cout << "At least one URL must be set with the --url-* options." << endl;
 		badCmdLine = true;
@@ -696,10 +836,10 @@ bool TattleApp::OnInit()
 
 	// Debug
 	cout << "Successful init." << endl
-		<< "  URL: http://" << report.postURL.host << report.postURL.path << endl
+		<< "  URL (post): " << report.url_post().full()
 		<< "  Parameters:" << endl;
 	for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
-		cout << "    - " << i->name << "= `" << i->value << "' Type#" << i->type << endl;
+		cout << "    - " << i->name << "= `" << i->value() << "' Type#" << i->type << endl;
 
 	Proceed();
 
@@ -717,11 +857,11 @@ void TattleApp::PerformQuery()
 	/*
 		Pre-query step, if applicable
 	*/
-	if (report.queryURL.isSet())
+	if (report.url_query().isSet())
 	{
 		Report::Reply reply = report.httpQuery(*this);
 
-		if (reply.valid() && !uiConfig.silent)
+		if (reply.valid() && !uiConfig.silentQuery())
 		{
 			// Queue up the prompt window
 			pendingWindow = Prompt::DisplayReply(reply);
@@ -732,17 +872,17 @@ void TattleApp::PerformQuery()
 			report_.connectionWarning = true;
 		}
 	}
-	else if (!uiConfig.silent)
+	else if (!uiConfig.silentQuery())
 	{
 		// Probe the server to test the connection
-		if (report.postURL.isSet() && !report.httpTest(*this, report.postURL))
+		if (report.url_post().isSet() && !report.httpTest(*this, report.url_post()))
 			report_.connectionWarning = true;
 	}
 }
 void TattleApp::PerformPrompt()
 {
 	// Skip if no post or running silently
-	if (report.postURL.isSet() && !uiConfig.silent)
+	if (report.url_post().isSet() && !uiConfig.silentPost())
 	{
 		// Set up the prompt window for display
 		prompt = new Prompt(NULL, -1, report_);
@@ -752,7 +892,7 @@ void TattleApp::PerformPrompt()
 void TattleApp::PerformPost()
 {
 	// Could be query-only...
-	if (!report.postURL.isSet()) return;
+	if (!report.url_post().isSet()) return;
 	
 	Report::Reply reply = report.httpPost(prompt ? (wxEvtHandler&) *prompt : *this);
 
@@ -769,7 +909,7 @@ void TattleApp::PerformPost()
 	}
 
 	// Queue up the info dialog
-	if (!uiConfig.silent)
+	if (!uiConfig.silentPost())
 		pendingWindow = Prompt::DisplayReply(reply, prompt);
 }
 

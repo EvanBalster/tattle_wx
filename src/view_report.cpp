@@ -43,9 +43,9 @@ ViewReport::~ViewReport()
 static void ParamDump(wxString &dump, const Report::Parameter *param)
 {
 	// Special handling for fields with newlines
-	if (param->value.length() > 35 || param->value.find_first_of(wxT("\r\n")) != wxString::npos)
+	if (param->value().length() > 35 || param->value().find_first_of("\r\n") != wxString::npos)
 	{
-		wxString valueIndent = param->value;
+		wxString valueIndent = param->value();
 		valueIndent.Replace(wxString("\n"), wxString("\n| "));
 		dump += param->name + wxT(":\n| ") + valueIndent;
 	}
@@ -53,7 +53,7 @@ static void ParamDump(wxString &dump, const Report::Parameter *param)
 	{
 		wxString label = param->name+wxT(": ");
 		if (label.length() < 20) label.Append(' ', size_t(20-label.length()));
-		dump += label + param->value;
+		dump += label + param->value();
 	}
 }
 
@@ -66,7 +66,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 {
 	SetIcon(wxArtProvider::GetIcon(wxART_INFORMATION));
 
-	const unsigned MARGIN = uiConfig.marginSm;
+	const unsigned MARGIN = uiConfig.marginSm();
 
 	++ViewReportCount;
 	
@@ -78,7 +78,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 	{
 		wxString argDump;
 		
-		bool preQueryNote = report.queryURL.isSet();
+		bool preQueryNote = report.url_query().isSet();
 		
 		bool first = true;
 		
@@ -139,7 +139,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 			{
 				wxString queryLabel =
 					wxT("The full report below is only sent if you choose `")
-					+ uiConfig.labelSend + wxT("':");
+					+ uiConfig.labelSend() + wxT("':");
 					
 				sizerTop->Add(
 					new wxStaticText(this, -1, queryLabel),
@@ -180,7 +180,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		{
 			if (i->type != PARAM_FILE_TEXT && i->type != PARAM_FILE_BIN) continue;
 			
-			wxString shortName = i->fname;
+			wxString shortName = i->path();
 			{
 				size_t p = shortName.find_last_of("\\/");
 				if (p != wxString::npos) shortName = shortName.substr(p+1);
@@ -218,7 +218,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		wxButton *butDone = new wxButton(this, wxID_OK);
 		actionRow->Add(butDone, 0, wxALL, MARGIN);
 		
-		if (report.viewPath.Length())
+		if (report.path_reviewData().length())
 		{
 			wxButton *butDir = new wxButton(this, wxID_VIEW_DETAILS, "Data Folder");
 			actionRow->Add(butDir, 0, wxALL, MARGIN);
@@ -254,13 +254,13 @@ void ViewReport::OnOpenFile(wxCommandEvent & event)
 	{
 		const Report::Parameter *param = report.findParam(window->GetName());
 		
-		if (param) wxLaunchDefaultApplication(param->fname);
+		if (param) wxLaunchDefaultApplication(param->path());
 	}
 }
 
 void ViewReport::OnOpenDir(wxCommandEvent & event)
 {
-	wxLaunchDefaultApplication(report.viewPath);
+	wxLaunchDefaultApplication(report.path_reviewData());
 /*#if __WXMSW__
 	wxExecute( wxT("start \"")+report.viewPath+wxT("\""), wxEXEC_ASYNC, NULL );
 #else

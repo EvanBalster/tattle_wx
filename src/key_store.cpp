@@ -1,126 +1,91 @@
 #include <sstream>
 
-#include "key_store.h"
+#include "tattle.h"
 
 
 using namespace tattle;
 
 
 
-CookieStore::DecodeResult CookieStore::decode(const std::string &marshalled)
+PersistentData::PersistentData() :
+	data(_data)
 {
-	auto i = marshalled.begin(), e = marshalled.end();
-
-	enum PARSE_STATE {NAME, VALUE, MISC};
-	PARSE_STATE part = NAME;
-
-	DecodeResult result = {0,0};
-
-	while (i < e)
-	{
-		std::string name;
-		while (i < e) switch (*i)
-		{
-		case int('='):
-			++i;
-			goto name_done;
-
-		default:
-			if (*i > 0x1F) {name.push_back(*i); ++i; break;}
-			else           [[fallthrough]];
-
-		case 0x7F:
-		case int(';'):
-		case int(' '):  case int('\r'): case int('\f'):
-		case int('\n'): case int('\t'): case int('\v'):
-			name.clear();
-			goto name_done;
-
-		
-		}
-	name_done:
-
-		std::string value;
-		if (name.length()) while (i < e) switch (*i)
-		{
-		case int('='):
-			++i;
-			goto value_done;
-
-		default:
-			if (*i > 0x1F) {value.push_back(*i); ++i; break;}
-			else           [[fallthrough]];
-
-		case 0x7F:
-		case int('\r'): case int('\n'): case int('\v'):
-			value.clear();
-			goto value_done;
-		}
-	value_done:
-
-		// Set value
-		if (name.length())
-		{
-			if (set(name, value)) ++result.parsed;
-			else                  ++result.errors;
-		}
-		else ++result.errors;
-
-		// Skip to next line.
-		while (i < e && *i != '\n') ++i;
-		if (i < e) ++i;
-	}
-
-
-	return result;
-}
-std::string CookieStore::encode() const
-{
-	std::stringstream ss(std::ios_base::out | std::ios_base::binary);
-
-	for (auto &pair : _map)
-	{
-		ss << pair.first << '=' << pair.second << '\n';
-	}
-
-	return ss.str();
 }
 
-bool CookieStore::set(const std::string &name, const std::string &value)
+static bool PersistentData_Load(const wxString &path, Json& json)
 {
-	if (name.length() == 0)
-		return false;
+	json = nullptr;
 
-	if (name.length() > 256 || value.length() > 4096)
-		return false;
+	if (!wxFile::Exists(path)) return false;
 
-	for (auto c : name) switch (c)
+	wxFile file(path);
+	if (!file.IsOpened()) return false;
+
+	try
 	{
-		case 0x7F:
-		case int('='):
-		case int(';'):
-		case int(' '):  case int('\r'): case int('\f'):
-		case int('\n'): case int('\t'): case int('\v'):
-			return false;
-		default:
-			break;
+		wxString contents_str;
+		file.ReadAll(&contents_str);
+		file.Close();
+
+		const auto contents_utf8 = contents_str.ToUTF8();
+
+		json = Json::parse(contents_utf8.data(), contents_utf8.data() + contents_utf8.length(), nullptr, true, true);
+
+		return true;
 	}
-
-	std::string cleanValue;
-	cleanValue.reserve(value.size());
-
-	for (auto c : value) switch (c)
+	catch (Json::parse_error& e)
 	{
-		case int(';'): case 0x7F:
-			return false;
-		case int('\r'): case int('\n'): case int('\v'):
-			c = ' ';
-			[[fallthrough]];
-		default:
-			cleanValue.push_back(c);
-			break;
+		std::cout << "Failed to read persistent data from `" << path << "' : " << e.what() << std::endl;
+		return false;
 	}
+	catch (...)
+	{
+		std::cout << "Failed to read persistent data from `" << path << "' : unknown exception" << std::endl;
+		return false;
+	}
+}
 
-	_map[name] = cleanValue;
+static bool PersistentData_Store(const wxString& path, const Json& json)
+{
+	wxFile file(path, wxFile::OpenMode::write);
+	if (!file.IsOpened()) return false;
+
+	file.Write(json.dump(1, '\t', false, nlohmann::detail::error_handler_t::replace));
+
+	file.Close();
+
 	return true;
+}
+
+bool PersistentData::load(wxString path)
+{
+	if (PersistentData_Load(path, _data))
+	{
+		_path = path;
+		return true;
+	}
+	else
+	{
+		if (_data.is_null()) _data = Json::object({
+			/*{"consent", {}},
+			{"cookies", {}},
+			{"input", {}},*/
+		});
+		if (!_path.length()) _path = path;
+		return false;
+	}
+}
+
+bool PersistentData::mergePatch(const Json& patch)
+{
+	if (!_path.length()) return false;
+
+	// Attempt to load the latest file data; otherwise use what's in memory
+	Json data;
+	if (!PersistentData_Load(_path, data)) data = this->_data;
+	
+	// Merge patch and store to file.
+	//   merge_patch operation cannot fail, barring an out-of-memory condition.
+	data.merge_patch(patch);
+	return PersistentData_Store(_path, data);
 }

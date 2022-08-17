@@ -211,6 +211,7 @@ void Report::Reply::parseRaw(const ParsedURL &url)
 	link     = GetTagContents(raw, wxT("tattle-link"));
 	comm     = GetTagContents(raw, wxT("tattle-command"));
 	iconName = GetTagContents(raw, wxT("tattle-icon"));
+	jsonValues = GetTagContents(raw, wxT("tattle-json"));
 
 	icon = uiConfig.GetIconID(iconName);
 	
@@ -221,7 +222,7 @@ void Report::Reply::parseRaw(const ParsedURL &url)
 	
 	if (link.Length())
 	{
-		// Format into an HTTP link based at the upload URL.
+		// Format into an HTTPS link based at the upload URL.
 		//    Don't allow links to other websites.
 		link = wxT("https://") + url.host + "/" + link;
 	}
@@ -265,7 +266,7 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 	if (prog)
 	{
 		// Set icon and show
-		prog->SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
+		prog->SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon()));
 		prog->Show();
 		prog->Raise();
 	}
@@ -302,7 +303,7 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 		//wxSleep(1);  For UI testing
 
 		// Post and download reply
-		if (uiConfig.showProgress)
+		if (uiConfig.showProgress())
 		{
 			if (isQuery)
 				prog->Update(30, "Talking with " + url.host + "...");
@@ -314,13 +315,42 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 		auto finalState = run_request_with_timeout(handler, webRequest, request_time_limit);
 
 		wxWebResponse response = webRequest.GetResponse();
+
 		reply.processResponse(finalState, response, url);
+
+		if (report.enable_server_values() && reply.jsonValues.length()) try
+		{
+			const auto contents_utf8 = reply.jsonValues.ToUTF8();
+
+			Json server_values = Json::parse(contents_utf8.data(), contents_utf8.data() + contents_utf8.length(), nullptr, true, true);
+
+			if (!server_values.is_object()) throw 0;
+
+			Json permitted_values = Json::object();
+			for (auto i = server_values.begin(); i != server_values.end(); ++i)
+			{
+				// Don't allow the server to set keys with a prefix
+				if (!i.key().length()) continue;
+				switch (i.key()[0])
+				{
+				case int('$'): case int('.'):
+					// Don't allow server to write keys starting with these characters.
+					continue;
+				}
+				permitted_values[i.key()] = std::move(i.value());
+			}
+
+			if (permitted_values.size())
+				persist.mergePatch(permitted_values);
+		}
+		catch (Json::parse_error &) {}
+		catch (int) {}
 
 		webRequest.Cancel(); // in case it didn't go through
 
 		//wxSleep(1);  For UI testing
 
-		if (uiConfig.showProgress) prog->Update(60);
+		if (uiConfig.showProgress()) prog->Update(60);
 	}
 	while (false);
 }
@@ -330,21 +360,21 @@ Report::Reply Report::httpQuery(wxEvtHandler &parent) const
 	wxWindow *parentWindow = dynamic_cast<wxWindow*>(&parent), *unhideWindow = nullptr;
 
 	// Hack for ordering issue
-	if (parentWindow && uiConfig.showProgress && uiConfig.stayOnTop)
+	if (parentWindow && uiConfig.showProgress() && uiConfig.stayOnTop())
 		{parentWindow->Hide(); unhideWindow = parentWindow; parentWindow = NULL;}
 
 	Reply reply;
 
-	if (uiConfig.showProgress)
+	if (uiConfig.showProgress())
 	{
 		wxProgressDialog dialog("Looking for solutions...", "Preparing...", 60, parentWindow,
 			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 
-		httpAction(parent, queryURL, reply, &dialog, true);
+		httpAction(parent, url_query(), reply, &dialog, true);
 	}
 	else
 	{
-		httpAction(parent, queryURL, reply, NULL, true);
+		httpAction(parent, url_query(), reply, NULL, true);
 	}
 
 	// Ordering issue hack
@@ -358,22 +388,22 @@ Report::Reply Report::httpPost(wxEvtHandler &parent) const
 	wxWindow *parentWindow = dynamic_cast<wxWindow*>(&parent), *unhideWindow = nullptr;
 
 	// Hack for ordering issue
-	if (parentWindow && uiConfig.showProgress && uiConfig.stayOnTop)
+	if (parentWindow && uiConfig.showProgress() && uiConfig.stayOnTop())
 		{parentWindow->Hide(); unhideWindow = parentWindow; parentWindow = NULL;}
 
 	Reply reply;
 	//http.SetTimeout(60);
 
-	if (uiConfig.showProgress)
+	if (uiConfig.showProgress())
 	{
 		wxProgressDialog dialog("Sending...", "Preparing Report...", 60, parentWindow,
 			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 
-		httpAction(parent, postURL, reply, &dialog, false);
+		httpAction(parent, url_post(), reply, &dialog, false);
 	}
 	else
 	{
-		httpAction(parent, postURL, reply, NULL, false);
+		httpAction(parent, url_post(), reply, NULL, false);
 	}
 	
 	// Ordering issue hack

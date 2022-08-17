@@ -20,8 +20,39 @@ using namespace tattle;
 
 Report::Report()
 {
+	config = Json::object();
+	config["url"]  = Json::object();
+	config["path"] = Json::object();
+	config["gui"]  = Json::object();
+	config["data"] = Json::object();
+
 	connectionWarning = false;
 }
+
+void Report::_parse_urls() const
+{
+	if (config.contains("url"))
+	{
+		auto& urls = config["url"];
+		url_cache.post .set(urls.value("base", "") + urls.value("post",  ""));
+		url_cache.query.set(urls.value("base", "") + urls.value("query", ""));
+		url_cache.parsed = true;
+	}
+}
+
+const Report::ParsedURL& Report::url_post() const
+{
+	//if (!url_cache.parsed)
+		_parse_urls();
+	return url_cache.post;
+}
+const Report::ParsedURL& Report::url_query() const
+{
+	//if (!url_cache.parsed)
+		_parse_urls();
+	return url_cache.query;
+}
+
 
 Report::Parameter *Report::findParam(const wxString &name)
 {
@@ -37,7 +68,7 @@ const Report::Parameter *Report::findParam(const wxString &name) const
 
 
 Report::Parameter::Parameter() :
-	type(PARAM_NONE), preQuery(false), trimBegin(0), trimEnd(0)
+	type(PARAM_NONE), preQuery(false)
 {
 }
 
@@ -69,14 +100,14 @@ void Report::readFiles()
 	{
 		if (i->type == PARAM_FILE_TEXT || i->type == PARAM_FILE_BIN)
 		{
-			if (!wxFile::Access(i->fname, wxFile::read))
+			if (!wxFile::Access(i->path(), wxFile::read))
 			{
 				DumpString(i->fileContents, wxT("[File not found]"));
 				continue;
 			}
 
 			// Open the file
-			wxFile file(i->fname);
+			wxFile file(i->path());
 			
 			if (!file.IsOpened())
 			{
@@ -89,26 +120,32 @@ void Report::readFiles()
 			
 			// Read the file into the post buffer directly
 			wxFileOffset fileLength = file.Length();
+
+			auto
+				trunc_begin = i->truncate_begin(),
+				trunc_end   = i->truncate_end();
+			auto
+				trunc_note = i->truncate_note();
 			
-			if ((i->trimBegin || i->trimEnd) && (i->trimBegin+i->trimEnd < fileLength))
+			if ((trunc_begin || trunc_end) && (trunc_begin+trunc_end < fileLength))
 			{
 				// Trim the file
-				if (i->trimBegin)
+				if (trunc_begin)
 				{
-					size_t consumed = file.Read(i->fileContents.GetAppendBuf(i->trimBegin), i->trimBegin);
+					size_t consumed = file.Read(i->fileContents.GetAppendBuf(trunc_begin), trunc_begin);
 					i->fileContents.UngetAppendBuf(consumed);
 					
 					DumpString(i->fileContents, " ...\r\n\r\n");
 				}
-				if (i->trimNote.Length())
+				if (trunc_note.length())
 				{
-					DumpString(i->fileContents, i->trimNote);
+					DumpString(i->fileContents, trunc_note);
 				}
-				if (i->trimEnd)
+				if (trunc_end)
 				{
 					DumpString(i->fileContents, "\r\n\r\n... ");
-					file.Seek(-wxFileOffset(i->trimEnd), wxFromEnd);
-					size_t consumed = file.Read(i->fileContents.GetAppendBuf(i->trimEnd), i->trimEnd);
+					file.Seek(-wxFileOffset(trunc_end), wxFromEnd);
+					size_t consumed = file.Read(i->fileContents.GetAppendBuf(trunc_end), trunc_end);
 					i->fileContents.UngetAppendBuf(consumed);
 				}
 			}
@@ -146,19 +183,19 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 		DumpString(postBuffer, "Content-Disposition: form-data; name=\"");
 		DumpString(postBuffer, i->name);
 		DumpString(postBuffer, "\"");
-		if (i->fname.length())
+		if (i->path().length())
 		{
 			// Filename
 			DumpString(postBuffer, "; filename=\"");
-			DumpString(postBuffer, i->fname);
+			DumpString(postBuffer, i->path());
 			DumpString(postBuffer, "\"");
 		}
 		DumpString(postBuffer, "\r\n");
 		
 		// Additional content type info
-		if (i->contentInfo.length())
+		if (i->content_info().length())
 		{
-			DumpString(postBuffer, i->contentInfo);
+			DumpString(postBuffer, i->content_info());
 			DumpString(postBuffer, "\r\n");
 		}
 		
@@ -171,7 +208,7 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 		case PARAM_STRING:
 		case PARAM_FIELD:
 		case PARAM_FIELD_MULTI:
-			DumpString(postBuffer, i->value);
+			DumpString(postBuffer, i->value());
 			break;
 		
 		case PARAM_FILE_TEXT:
@@ -181,7 +218,7 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 		case PARAM_NONE:
 		default:
 			DumpString(postBuffer, "Unknown Data:\r\n");
-			DumpString(postBuffer, i->value);
+			DumpString(postBuffer, i->value());
 			break;
 		}
 	}
@@ -210,10 +247,10 @@ wxString Report::preQueryString() const
 			query += "=";
 			
 			// Quick and dirty URL encoding
-			size_t len = std::min<size_t>(i->value.Length(), 64);
+			size_t len = std::min<size_t>(i->value().length(), 64);
 			for (size_t n = 0; n < len; ++n)
 			{
-				wxUniChar uc = i->value.GetChar(n);
+				wxUniChar uc = i->value()[n];
 				char c;
 				if (uc.IsAscii() && uc.GetAsChar(&c))
 				{

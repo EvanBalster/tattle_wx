@@ -38,6 +38,25 @@ void Prompt::OnDetails(wxCommandEvent & event)
 
 void Prompt::OnSubmit(wxCommandEvent & event)
 {
+	std::string input_warnings;
+
+	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
+	{
+		if (i->param->input_warning().length() && !i->control->GetValue().length())
+		{
+			input_warnings += i->param->input_warning();
+			input_warnings += "\n";
+		}
+	}
+
+	if (input_warnings.length())
+	{
+		if (wxMessageBox(input_warnings + "\nSubmit the report anyway?",
+			"Missing Information", wxYES_NO|wxCENTRE, this)
+			!= wxYES)
+			return;
+	}
+
 	// Halt user input
 	Enable(false);
 
@@ -53,23 +72,46 @@ void Prompt::OnCancel(wxCommandEvent & event)
 	Close(true);
 }
 
+void Prompt::OnShow(wxShowEvent & event)
+{
+}
+
 void Prompt::OnClose(wxCloseEvent &event)
 {
+	Json persistInputs = Json::object();
+	if (dontShowAgainBox && dontShowAgainBox->GetValue())
+		persistInputs["$show"] = {{report.report_type(), {{report.report_id(), 0}} }};
+	if (persistInputs.size())
+		persist.mergePatch(persistInputs);
+
 	// TODO consider veto appeal
 	Enable(false);
 
 	Tattle_Halt();
 }
 
-void Prompt::OnShow(wxShowEvent & event)
-{
-}
-
 void Prompt::UpdateReportFromFields()
 {
+	Json persistInputs = Json::object();
+
 	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
 	{
-		i->param->value = i->control->GetValue();
+		if (i->param->persist())
+		{
+			persistInputs[i->param->name] = i->control->GetValue();
+		}
+
+		i->param->value() = i->control->GetValue();
+	}
+
+	if (dontShowAgainBox && dontShowAgainBox->GetValue())
+	{
+		persistInputs["$show"] = {{report.report_type(), {{report.report_id(), 0}} }};
+	}
+
+	if (persistInputs.size())
+	{
+		persist.mergePatch(persistInputs);
 	}
 }
 
@@ -178,16 +220,16 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 
 // Dialog
 Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
-	: wxDialog(parent, id, uiConfig.promptTitle,
+	: wxDialog(parent, id, _report.url_post().host + " - " + uiConfig.promptTitle(),
 		wxDefaultPosition, wxDefaultSize,
 		wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	report(_report),
-	fontTechnical(wxFontInfo().Family(wxFONTFAMILY_TELETYPE))
+	fontTechnical(8, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL)
 {
-	SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon));
+	SetIcon(wxArtProvider::GetIcon(uiConfig.defaultIcon()));
 
 
-	const unsigned MARGIN = uiConfig.marginSm;
+	const unsigned MARGIN = uiConfig.marginSm();
 
 	// Error display ?
 	//wxTextCtrl *displayError 
@@ -196,36 +238,84 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	
 	sizerTop->AddSpacer(MARGIN);
 
-	if (uiConfig.promptMessage.length())
+	if (uiConfig.promptMessage().length())
 	{
-		wxStaticText *messageText = new wxStaticText(this, -1, uiConfig.promptMessage,
+		wxStaticText *messageText = new wxStaticText(this, -1, uiConfig.promptMessage(),
 			wxDefaultPosition, wxDefaultSize, wxLEFT);
 		
-		ApplyMarkup(messageText, uiConfig.promptMessage);
+		ApplyMarkup(messageText, uiConfig.promptMessage());
 		
 		sizerTop->Add(messageText, 0, wxALIGN_LEFT | wxALL, MARGIN);
 
 		// Horizontal rule, if no technical message
-		if (uiConfig.promptTechnical.length() == 0)
+		if (uiConfig.promptTechnical().length() == 0)
 			sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
 	}
 	
-	if (uiConfig.promptTechnical.length())
+	// Report contents and information
 	{
-		wxString technical = uiConfig.promptTechnical;
-		technical.Replace(_("<br>"), _("\n"), true);
-	
-		wxTextCtrl *techBox = new wxTextCtrl(this, -1, technical,
-			wxDefaultPosition, wxSize(400, 40),
-			wxTE_MULTILINE|wxTE_READONLY, wxDefaultValidator);
-		
-		techBox->SetFont(fontTechnical);
-		
-		techBox->SetBackgroundStyle( wxBG_STYLE_COLOUR );
-        techBox->SetBackgroundColour( *wxLIGHT_GREY );
-		
-		sizerTop->Add(techBox, 0, wxEXPAND | wxALL, MARGIN);
+		// Data area
+		wxTextCtrl *techBox = nullptr;
+		dontShowAgainBox = nullptr;
+		wxButton *reviewButton = nullptr;
+
+		if (report.report_id().length())
+		{
+			dontShowAgainBox = new wxCheckBox(this, -1, "Don't show again");
+		}
+
+		if (uiConfig.enableReview())
+		{
+			reviewButton = new wxButton(this, Ev_Details, uiConfig.labelReview());
+		}
+
+		if (uiConfig.promptTechnical().length())
+		{
+			wxString technical = uiConfig.promptTechnical();
+			technical.Replace(_("<br>"), _("\n"), true);
+
+			techBox = new wxTextCtrl(this, -1, technical,
+				wxDefaultPosition, wxSize(300, 40), // previously 400
+				wxTE_MULTILINE|wxTE_READONLY, wxDefaultValidator);
+
+			techBox->SetFont(fontTechnical);
+
+			techBox->SetBackgroundStyle( wxBG_STYLE_COLOUR );
+			techBox->SetBackgroundColour( *wxLIGHT_GREY );
+
+			//sizerTop->Add(techBox, 0, wxEXPAND | wxALL, MARGIN);
+		}
+
+		wxBoxSizer *myDataControls = nullptr;
+
+		if (dontShowAgainBox || reviewButton)
+		{
+			myDataControls = new wxBoxSizer(wxVERTICAL);
+
+			if (reviewButton)     myDataControls->Add(reviewButton,     0, wxALIGN_CENTER | wxALL, MARGIN);
+			if (dontShowAgainBox) myDataControls->Add(dontShowAgainBox, 0, wxALL);
+		}
+
+		if (techBox)
+		{
+			if (myDataControls)
+			{
+				wxBoxSizer *myDataHori = new wxBoxSizer(wxHORIZONTAL);
+				myDataHori->Add(techBox, 0, wxEXPAND | wxALL, MARGIN);
+				myDataHori->Add(myDataControls, 0, wxEXPAND | wxALL, MARGIN);
+				sizerTop->Add(myDataHori, 0, wxEXPAND | wxALL);
+			}
+			else
+			{
+				sizerTop->Add(techBox, 0, wxEXPAND | wxALL, MARGIN);
+			}
+		}
+		else if (myDataControls)
+		{
+			sizerTop->Add(myDataControls, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT, MARGIN);
+		}
 	}
+	
 
 	wxFlexGridSizer *sizerField = NULL;
 	
@@ -236,16 +326,24 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	{
 	case PARAM_FIELD:
 		{
-			wxStaticText *label = new wxStaticText(this, -1, i->label);
+			wxStaticText *label = new wxStaticText(this, -1, i->label());
 			
-			ApplyMarkup(label, i->label);
+			ApplyMarkup(label, i->label());
 
-			wxTextCtrl *field = new wxTextCtrl(this, -1, i->value,
+			// Initial field value may come from persistent data store.
+			wxString initialFieldValue = i->value();
+			if (i->persist()) // TODO potential encoding problems here??
+			{
+				if (persist.data.contains(i->name))
+					initialFieldValue = persist.data.value(i->name, std::string(initialFieldValue));
+			}
+
+			wxTextCtrl *field = new wxTextCtrl(this, -1, initialFieldValue,
 				wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, i->name);
 				
 			Field fieldEntry = {&*i, field}; fields.push_back(fieldEntry);
 
-			if (i->hint.length()) field->SetHint(i->hint);
+			if (i->placeholder().length()) field->SetHint(i->placeholder());
 
 			if (!sizerField)
 			{
@@ -266,9 +364,9 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		{
 			if (sizerField) sizerField = NULL;
 
-			wxStaticText *label = new wxStaticText(this, -1, i->label);
+			wxStaticText *label = new wxStaticText(this, -1, i->label());
 
-			wxTextCtrl *field = new wxTextCtrl(this, -1, i->value,
+			wxTextCtrl *field = new wxTextCtrl(this, -1, i->value(),
 				wxDefaultPosition, wxSize(400, 100), wxTE_MULTILINE, wxDefaultValidator, i->name);
 				
 			Field fieldEntry = {&*i, field}; fields.push_back(fieldEntry);
@@ -299,17 +397,19 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 
 		wxButton *butSubmit, *butCancel;
 		
-		butSubmit = new wxButton(this, Ev_Submit, uiConfig.labelSend);
-		butCancel = new wxButton(this, Ev_Cancel, uiConfig.labelCancel);
+		butSubmit = new wxButton(this, Ev_Submit, uiConfig.labelSend());
+		butCancel = new wxButton(this, Ev_Cancel, uiConfig.labelCancel());
+
+		{
+			wxStaticText *actionsLabel = new wxStaticText(this, -1, uiConfig.promptMessage(),
+				wxDefaultPosition, wxDefaultSize, wxLEFT);
+
+			ApplyMarkup(actionsLabel, "Send to imitone HQ?");
+			actionRow->Add(actionsLabel, 1, wxALIGN_CENTER | wxALL, MARGIN);
+		}
 
 		actionRow->Add(butSubmit, 1, wxALL, MARGIN);
 		actionRow->Add(butCancel, 0, wxALL, MARGIN);
-		
-		if (uiConfig.viewEnabled)
-		{
-			wxButton *butView = new wxButton(this, Ev_Details, uiConfig.labelView);
-			actionRow->Add(butView, 0, wxALL, MARGIN);
-		}
 		
 		butSubmit->SetDefault();
 
