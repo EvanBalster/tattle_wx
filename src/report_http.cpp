@@ -25,7 +25,9 @@ using namespace tattle;
 
 
 
-wxWebRequest::State run_request_with_timeout(wxEvtHandler &handler, wxWebRequest &request, int timeout_seconds)
+wxWebRequest::State run_request_with_timeout(
+	wxEvtHandler &handler, wxWebRequest &request, int timeout_seconds,
+	wxProgressDialog *progress)
 {
 	//request.DisablePeerVerify(); // TODO make this configurable?
 
@@ -95,11 +97,32 @@ wxWebRequest::State run_request_with_timeout(wxEvtHandler &handler, wxWebRequest
 			break;
 		}
 
+		auto
+			send_ct = request.GetBytesSent(),
+			send_ex = request.GetBytesExpectedToSend(),
+			recv_ct = request.GetBytesReceived(),
+			recv_ex = request.GetBytesExpectedToReceive();
+
+		// Reset timeout if transaction is making progress
+		if (send_ct != bytes_sent || recv_ct != bytes_recv)
+		{
+			time_started = std::chrono::steady_clock::now();
+			i = 1;
+		}
+
 		// diagnostics / progress bar
-		bytes_sent = request.GetBytesSent();
-		bytes_recv = request.GetBytesReceived();
-		bytes_to_send = request.GetBytesExpectedToSend();
-		bytes_to_recv = request.GetBytesExpectedToReceive();
+		bytes_sent = send_ct;
+		bytes_recv = recv_ct;
+		bytes_to_send = send_ex;
+		bytes_to_recv = recv_ex;
+
+		if (progress)
+		{
+			float pct
+				= (80.f*bytes_sent)/bytes_to_send
+				+ (20.f*bytes_recv)/bytes_to_recv;
+			progress->Update(std::floor(pct));
+		}
 	}
 
 	handler.Unbind(wxEVT_WEBREQUEST_STATE, eventHandler);
@@ -279,6 +302,8 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 
 	wxWebRequest webRequest = wxWebSession::GetDefault().CreateRequest(&handler, full_url);
 
+	webRequest.SetMethod("POST");
+
 	wxMemoryBuffer postBuffer;
 	{
 		std::string boundary_id = "tattle-boundary-";
@@ -286,7 +311,8 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 
 		encodePost(postBuffer, boundary_id, isQuery);
 		webRequest.SetData(new wxMemoryInputStream(postBuffer.GetData(), postBuffer.GetDataLen()),
-			wxT("multipart/form-data; boundary=\"") + wxString(boundary_id) + ("\""));
+			wxT("multipart/form-data; boundary=\"") + wxString(boundary_id) + ("\""),
+			postBuffer.GetDataLen());
 	}
 	
 
@@ -311,7 +337,7 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 			wxYield();
 		}
 
-		auto finalState = run_request_with_timeout(handler, webRequest, request_time_limit);
+		auto finalState = run_request_with_timeout(handler, webRequest, request_time_limit, prog);
 
 		wxWebResponse response = webRequest.GetResponse();
 		reply.processResponse(finalState, response, url);
@@ -320,7 +346,7 @@ void Report::httpAction(wxEvtHandler &handler, const ParsedURL &url, Reply &repl
 
 		//wxSleep(1);  For UI testing
 
-		if (uiConfig.showProgress) prog->Update(60);
+		if (uiConfig.showProgress) prog->Update(100);
 	}
 	while (false);
 }
@@ -337,7 +363,7 @@ Report::Reply Report::httpQuery(wxEvtHandler &parent) const
 
 	if (uiConfig.showProgress)
 	{
-		wxProgressDialog dialog("Looking for solutions...", "Preparing...", 60, parentWindow,
+		wxProgressDialog dialog("Looking for solutions...", "Preparing...", 100, parentWindow,
 			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 
 		httpAction(parent, queryURL, reply, &dialog, true);
@@ -366,7 +392,7 @@ Report::Reply Report::httpPost(wxEvtHandler &parent) const
 
 	if (uiConfig.showProgress)
 	{
-		wxProgressDialog dialog("Sending...", "Preparing Report...", 60, parentWindow,
+		wxProgressDialog dialog("Sending...", "Preparing Report...", 100, parentWindow,
 			wxPD_APP_MODAL | wxPD_AUTO_HIDE | uiConfig.style());
 
 		httpAction(parent, postURL, reply, &dialog, false);
@@ -386,7 +412,7 @@ bool Report::httpTest(wxEvtHandler &parent, const ParsedURL &url) const
 {
 	wxWebRequest webRequest = wxWebSession::GetDefault().CreateRequest(&parent, url.full());
 
-	auto finalState = run_request_with_timeout(parent, webRequest, 5);
+	auto finalState = run_request_with_timeout(parent, webRequest, 5, nullptr);
 
 	bool connected = (finalState == wxWebRequest::State_Completed);
 	
