@@ -78,11 +78,10 @@ void Prompt::OnShow(wxShowEvent & event)
 
 void Prompt::OnClose(wxCloseEvent &event)
 {
-	Json persistInputs = Json::object();
+	auto id = report.identity();
+
 	if (dontShowAgainBox && dontShowAgainBox->GetValue())
-		persistInputs["$show"] = {{report.report_type(), {{report.report_id(), 0}} }};
-	if (persistInputs.size())
-		persist.mergePatch(persistInputs);
+		persist.mergePatch({{"$show", { {id.type, {{id.id, 0}} }} }});
 
 	// TODO consider veto appeal
 	Enable(false);
@@ -92,6 +91,8 @@ void Prompt::OnClose(wxCloseEvent &event)
 
 void Prompt::UpdateReportFromFields()
 {
+	auto id = report.identity();
+
 	Json persistInputs = Json::object();
 
 	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
@@ -106,13 +107,11 @@ void Prompt::UpdateReportFromFields()
 
 	if (dontShowAgainBox && dontShowAgainBox->GetValue())
 	{
-		persistInputs["$show"] = {{report.report_type(), {{report.report_id(), 0}} }};
+		persistInputs["$show"] = {{id.type, {{id.id, 0}} }};
 	}
 
 	if (persistInputs.size())
-	{
 		persist.mergePatch(persistInputs);
-	}
 }
 
 static void ApplyMarkup(wxControl *control, const wxString &markup)
@@ -192,27 +191,34 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 			errorMessage += wxT("\nAre you connected to the internet?");
 		}
 	}
-	else if (reply.sentLink())
+	else
 	{
 		wxString title = reply.title, msg = reply.message;
+		wxString link;
+		
+		if (reply.sentLink())
+		{
+			if (!title.Length()) title = wxT("Suggested Link");
+			if (!msg.Length()) msg = wxT("The server replied with a link.");
+			link = reply.link;
+		}
+		else
+		{
+			if (!title.Length()) title = "Report Sent";
+			if (!msg.Length()) msg = "Your report was sent and accepted.";
+		}
 
-		if (!title.Length()) title = wxT("Suggested Link");
-		if (!msg.Length()) msg = wxT("The server replied with a link.");
-
-		return new InfoDialog(parent, title, msg, reply.link, reply.command, reply.icon);
-	}
-	else if (reply.message.Length() > 0)
-	{
-		wxString title = reply.title, msg = reply.message;
-		if (!title.Length()) title = "Report Sent";
-		if (!msg.Length()) msg = "Your report was sent and accepted.";
-
-		return new InfoDialog(parent, title, msg, "", reply.command, reply.icon);
+		if (reply.identity && JsonFetch(persist.data,
+			JsonPointer("/$show/" + reply.identity.type + "/" + reply.identity.id), 1) != 0)
+		{
+			return new InfoDialog(parent, title, msg, reply.link, reply.command, reply.icon, reply.identity);
+		}
+		else return NULL; // If we previously chose "don't show this again"...
 	}
 
 	if (errorMessage.Length())
 	{
-		return new InfoDialog(parent, wxT("Send Failed"), errorMessage, "", Report::SC_PROMPT, reply.icon);
+		return new InfoDialog(parent, wxT("Send Failed"), errorMessage, "", Report::SC_PROMPT, reply.icon, reply.identity);
 	}
 
 	return NULL;
@@ -220,7 +226,7 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 
 // Dialog
 Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
-	: wxDialog(parent, id, _report.url_post().host + " - " + uiConfig.promptTitle(),
+	: wxDialog(parent, id, _report.url_post().host + ": " + uiConfig.promptTitle(),
 		wxDefaultPosition, wxDefaultSize,
 		wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
 	report(_report),
@@ -259,7 +265,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		dontShowAgainBox = nullptr;
 		wxButton *reviewButton = nullptr;
 
-		if (report.report_id().length())
+		if (report.identity())
 		{
 			dontShowAgainBox = new wxCheckBox(this, -1, "Don't show again");
 		}

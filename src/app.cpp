@@ -265,19 +265,13 @@ public:
 
 				case int('t'):
 					{
-						std::string type_id = arg.GetStrVal();
-						auto colon_pos = type_id.find_first_of(':');
-						std::string type, id;
-						if (colon_pos != std::string::npos)
-						{
-							type = type_id.substr(0, colon_pos);
-							id = type_id.substr(colon_pos+1);
-						}
-						else type = type_id;
-						Json &data = report_.config["data"];
-						if (!data.is_object()) data = Json::object({});
-						data["$type"] = type;
-						data["$id"] = id;
+						Report::Identifier id(std::string(arg.GetStrVal()));
+
+						report_.config.merge_patch(
+						{{"data", {
+							{"$type", id.type},
+							{"$id",   id.id}
+						} }});
 					}
 					break;
 
@@ -633,8 +627,11 @@ public:
 			[[fallthrough]];
 
 		case RS_PROMPT:
-			stage = RS_POST;
-			PerformPost();
+			if (stage <= RS_PROMPT) // Allow skipping via Halt()
+			{
+				stage = RS_POST;
+				PerformPost();
+			}
 			if (pendingWindow) break;
 			[[fallthrough]];
 
@@ -786,19 +783,19 @@ public:
 	void PerformPost();
 
 private:
-	RUN_STAGE stage;
+RUN_STAGE stage;
 
-	wxWindow *pendingWindow, *disposeWindow;
-	Prompt *prompt;
+wxWindow* pendingWindow, * disposeWindow;
+Prompt* prompt;
 
-	bool idleHandler;
-	bool anyWindows;
+bool idleHandler;
+bool anyWindows;
 };
 
 bool TattleApp::OnInit()
 {
 	anyWindows = false;
-	
+
 	//cout << "Reading command line..." << endl;
 
 	// call the base class initialization method, currently it only parses a
@@ -811,27 +808,27 @@ bool TattleApp::OnInit()
 	pendingWindow = NULL;
 	disposeWindow = NULL;
 	prompt = NULL;
-		
+
 	bool badCmdLine = false;
-		
+
 	if (!report.url_post().isSet() && !report.url_query().isSet())
 	{
 		cout << "At least one URL must be set with the --url-* options." << endl;
 		badCmdLine = true;
 	}
-	
+
 	if (!report.params.size())
 	{
 		cout << "At least one argument (string/file/field) must be specified." << endl;
 		badCmdLine = true;
 	}
-	
+
 	if (badCmdLine)
 	{
 		cout << "  Execute tattle --help for more information." << endl;
 		return false;
 	}
-	
+
 	report_.readFiles();
 
 	// Debug
@@ -884,9 +881,18 @@ void TattleApp::PerformPrompt()
 	// Skip if no post or running silently
 	if (report.url_post().isSet() && !uiConfig.silentPost())
 	{
-		// Set up the prompt window for display
-		prompt = new Prompt(NULL, -1, report_);
-		pendingWindow = prompt;
+		auto identity = report_.identity();
+		if (JsonFetch(persist.data, JsonPointer("/$show/" + identity.type + "/" + identity.id), 1) != 0)
+		{
+			// Set up the prompt window for display
+			prompt = new Prompt(NULL, -1, report_);
+			pendingWindow = prompt;
+		}
+		else
+		{
+			//TODO prevent submission
+			Halt();
+		}
 	}
 }
 void TattleApp::PerformPost()

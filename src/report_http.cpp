@@ -236,6 +236,8 @@ void Report::Reply::parseRaw(const ParsedURL &url)
 	iconName = GetTagContents(raw, wxT("tattle-icon"));
 	jsonValues = GetTagContents(raw, wxT("tattle-json"));
 
+	identity = Report::Identifier(std::string(GetTagContents(raw, wxT("tattle-id"))));
+
 	icon = uiConfig.GetIconID(iconName);
 	
 	if      (comm == wxT("STOP"))         command = SC_STOP;

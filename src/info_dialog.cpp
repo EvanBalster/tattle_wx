@@ -19,9 +19,11 @@ wxBEGIN_EVENT_TABLE(InfoDialog, wxDialog)
 	EVT_CLOSE(InfoDialog::OnClose)
 wxEND_EVENT_TABLE()
 
-InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxString link_, Report::SERVER_COMMAND _command, wxArtID iconArtID) :
+InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message,
+	wxString link_, Report::SERVER_COMMAND _command, wxArtID iconArtID, Report::Identifier _dontShowAgainID)
+	:
 	wxDialog(parent, -1, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | uiConfig.style()),
-	command(_command), link(link_)
+	command(_command), link(link_), dontShowAgainID(_dontShowAgainID)
 {
 	// | wxOK | wxCENTER | (link_.length() ? wxCANCEL : 0)
 
@@ -82,19 +84,13 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 				tHeader->SetForegroundColour(wxTheColourDatabase->Find("MEDIUM BLUE"));
 				textArea->Add(tHeader, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd());
 			}
-			textArea->Add(tContent, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd());
+			textArea->Add(tContent, 0, wxALIGN_LEFT | wxALL, uiConfig.marginSm());
 
-			if (link.length())
+			if (dontShowAgainID)
 			{
-				wxString shortLink = link;
-				{
-					wxString::size_type pos = link.find("//");
-					if (pos != wxString::npos) shortLink = link.substr(pos + 2);
-				}
+				dontShowAgainBox = new wxCheckBox(this, -1, "Don't show again");
 
-				wxHyperlinkCtrl *anchor = new wxHyperlinkCtrl(this, wxID_OPEN, shortLink, link);
-
-				textArea->Add(anchor, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginMd());
+				textArea->Add(dontShowAgainBox, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginMd());
 			}
 
 			display->Add(textArea, 0);
@@ -110,6 +106,22 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message, wxStr
 
 		if (link.length())
 		{
+			wxString shortLink = link;
+			{
+				wxString::size_type pos = link.find("//");
+				if (pos != wxString::npos) shortLink = link.substr(pos + 2);
+
+				// Trim fragment and trailing slashes...
+				pos = shortLink.find('#');
+				if (pos != wxString::npos) shortLink = shortLink.substr(0, pos);
+				while (shortLink.length() && shortLink[shortLink.length()-1] == '/')
+					shortLink.resize(shortLink.length()-1);
+			}
+
+			wxHyperlinkCtrl *anchor = new wxHyperlinkCtrl(this, wxID_OPEN, shortLink, link);
+			actionRow->Add(anchor, 0, wxALIGN_CENTER | wxALL, uiConfig.marginMd());
+
+
 			actionRow->Add(dfl = new wxButton(this, wxID_OPEN), 1, wxALL, uiConfig.marginSm());
 			actionRow->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, uiConfig.marginSm());
 		}
@@ -139,6 +151,10 @@ void InfoDialog::Done()
 	Disable();
 	
 	void(*action)(void) = NULL;
+
+	// Respect "don't show again"
+	if (dontShowAgainID && dontShowAgainBox && dontShowAgainBox->GetValue())
+		persist.mergePatch({{"$show", { {dontShowAgainID.type, {{dontShowAgainID.id, 0}} }} }});
 
 	if (!overrideCommand)
 		switch (command)

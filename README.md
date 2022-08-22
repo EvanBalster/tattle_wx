@@ -17,7 +17,7 @@ Step-by-step:
   * Includes the command-line and any configuration files.
   * This builds the parameter list.
   * Files are truncated and read into memory at this stage, in case they would subsequently change.
-2. ❌ Consent to Query *(`-s` or `-sq` bypasses)*
+2. ❌ Planned: Consent to Query *(`-s` or `-sq` bypasses)*
    * ❌ Ask the user for consent to send basic information to the server.
    * This prompt is only shown to the user once per category.
 3. Query _(`-uq` enables)_
@@ -53,6 +53,7 @@ Items marked with ❌ are not yet implemented.
 | `-v`  | `--view-data`             |                   | Enable user to view content from the prompt.                 |
 | `-vd` | `--view-dir`              | `<path>`          | A folder linked from the 'View Data' dialog.<br />This option is taken to imply `-v`. |
 | `-cs` | `--cookies`               | `<path>`          | ❌ Directory for Tattle's persistent data.<br />Enables persistent inputs, consent & server cookies. |
+| `-ct` | `--category`              | `<type>:<id>`     | Identifies report for features like "don't show again".<br />Enables "don't show again" feature |
 | `-l`  | `--log`                   | `<fname>`         | Set Tattle's log file location (default: no logging).        |
 | `-sq` | `--silent-query`          |                   | Query without requiring user consent.                        |
 | `-s`  | `--silent`                |                   | Query and post without displaying any UI.<br />⚠ **Bypasses all user consent**. |
@@ -60,7 +61,6 @@ Items marked with ❌ are not yet implemented.
 |       |                           |                   |                                                              |
 | `-a`  | `--arg`                   | `<key>=<value>`   | Specify argument string `<value>` for parameter `<key>`.     |
 | `-aq` | `--arg-query`             | `<key>=<value>`   | As `-a` but also included in initial query.                  |
-| `-at` | `--arg-category`          | `<key>=<value>`   | ❌ Category of operations (eg, error or update).<br />Used as a key for tracking user's consent to query.<br />Otherwise behaves as `--arg-query`. |
 | `-ai` | `--arg-id`                | `<key>=<value>`   | ❌ Identity within this operation's category.<br />Used for tracking "don't show me this again".<br />Otherwise behaves as `--arg-query`. |
 | `-ft` | `--file`                  | `<key>=<fname>`   | Upload a text file `<fname>` for parameter `<key>`.          |
 | `-fb` | `--file-binary`           | `<key>=<fname>`   | Upload a binary file.  (Different content-type.)             |

@@ -109,6 +109,25 @@ namespace tattle
     struct Report
     {
     public: //types
+		struct Identifier
+		{
+		public:
+			std::string type;
+			std::string id;
+
+		public:
+			explicit operator bool() const noexcept    {return type.length() || id.length();}
+
+			Identifier() {}
+			Identifier(std::string raw)
+			{
+				auto p = raw.find_first_of(':');
+				if (p == std::string::npos) type = raw;
+				else {type = raw.substr(0, p); id = raw.substr(p+1);}
+			}
+			Identifier(std::string _type, std::string _id)    : type(_type), id(_id) {}
+		};
+
         /*
 			Represents a report parameter.
 		*/
@@ -196,6 +215,7 @@ namespace tattle
 			
 			wxString       raw;
 			wxString       title, message, link;
+			Identifier     identity;
 			wxString       jsonValues;
 			SERVER_COMMAND command;
 			wxArtID        icon;
@@ -249,8 +269,12 @@ namespace tattle
 
 		Parameters params;
 
-		std::string report_type() const    {return JsonFetch(config, "/data/$type", "");}
-		std::string report_id  () const    {return JsonFetch(config, "/data/$id", "");}
+		Identifier identity() const
+		{
+			return Identifier(
+				JsonFetch(config, "/data/$type", ""),
+				JsonFetch(config, "/data/$id",   ""));
+		}
 
 		const ParsedURL& url_post()  const;
 		const ParsedURL& url_query() const;
@@ -438,7 +462,8 @@ namespace tattle
 			wxString message,
 			wxString link = wxString(),
 			Report::SERVER_COMMAND command = Report::SC_NONE,
-			wxArtID iconArtID = "");
+			wxArtID iconArtID = "",
+			Report::Identifier dontShowAgainID = {});
 
 	protected:
 		void Done();
@@ -459,6 +484,9 @@ namespace tattle
 
 		wxString link;
 		int      styleBase;
+
+		Report::Identifier dontShowAgainID;
+		wxCheckBox *dontShowAgainBox = nullptr;
 
 		bool     didAction;
 		bool     overrideCommand;
