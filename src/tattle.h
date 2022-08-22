@@ -343,6 +343,10 @@ namespace tattle
 
 		PersistentData();
 
+
+		bool shouldShow(const Report::Identifier &id) const    {return JsonFetch(data, JsonPointer("/$show/"+id.type+"/"+id.id), 1) != 0;}
+
+
 		bool load      (wxString path);
 		bool mergePatch(const Json &patch);
 

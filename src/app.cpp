@@ -120,6 +120,9 @@ static TattleApp *tattleApp = NULL;
 class tattle::TattleApp : public wxApp
 {
 public:
+	friend void tattle::Tattle_Halt();
+
+
 	static bool ParsePair(const wxString &str, wxString &first, wxString &second)
 	{
 		wxString::size_type p = str.find_first_of('=');
@@ -621,8 +624,11 @@ public:
 			[[fallthrough]];
 
 		case RS_QUERY:
-			stage = RS_PROMPT;
-			PerformPrompt();
+			if (stage <= RS_PROMPT) // Allow skipping via Halt()
+			{
+				stage = RS_PROMPT;
+				PerformPrompt();
+			}
 			if (pendingWindow) break;
 			[[fallthrough]];
 
@@ -881,8 +887,7 @@ void TattleApp::PerformPrompt()
 	// Skip if no post or running silently
 	if (report.url_post().isSet() && !uiConfig.silentPost())
 	{
-		auto identity = report_.identity();
-		if (JsonFetch(persist.data, JsonPointer("/$show/" + identity.type + "/" + identity.id), 1) != 0)
+		if (persist.shouldShow(report_.identity()))
 		{
 			// Set up the prompt window for display
 			prompt = new Prompt(NULL, -1, report_);
@@ -953,6 +958,7 @@ void tattle::Tattle_DisposeDialog(wxWindow *dialog)
 }
 void tattle::Tattle_Halt()
 {
+	tattleApp->stage = TattleApp::RS_DONE;
 	tattleApp->Halt();
 }
 

@@ -208,12 +208,26 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 			if (!msg.Length()) msg = "Your report was sent and accepted.";
 		}
 
-		if (reply.identity && JsonFetch(persist.data,
-			JsonPointer("/$show/" + reply.identity.type + "/" + reply.identity.id), 1) != 0)
+		if (reply.identity && persist.shouldShow(reply.identity))
 		{
 			return new InfoDialog(parent, title, msg, reply.link, reply.command, reply.icon, reply.identity);
 		}
-		else return NULL; // If we previously chose "don't show this again"...
+		else
+		{
+			switch (reply.command)
+			{
+			default:
+			case Report::SC_NONE:
+			case Report::SC_PROMPT:
+			case Report::SC_STOP_ON_LINK: // (user has only dismissed server message)
+				// Proceed to prompt, if any.
+				break;
+			case Report::SC_STOP:
+				Tattle_Halt();
+				break;
+			}
+			return NULL; // If we previously chose "don't show this again"...
+		}
 	}
 
 	if (errorMessage.Length())
