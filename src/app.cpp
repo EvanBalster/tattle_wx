@@ -443,7 +443,7 @@ public:
 					{
 						{"label", label}
 					};
-					if (c1 == '\0')      param.type = PARAM_FIELD;
+					if (c1 == '\0')     param.type = PARAM_FIELD;
 					else if (c1 == 'm') param.type = PARAM_FIELD_MULTI;
 					report_.params.push_back(std::move(param));
 				}

@@ -51,6 +51,14 @@ namespace tattle
 	using JsonPointer = nlohmann::json::json_pointer;
 
 
+	enum
+	{
+		TATTLE_VERSION_MAJOR = 1,
+		TATTLE_VERSION_MINOR = 0,
+		TATTLE_VERSION_PATCH = 0,
+	};
+
+
 	/*
 	*	Failsafe JSON getter methods.
 	*/

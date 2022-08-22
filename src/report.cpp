@@ -27,6 +27,22 @@ Report::Report()
 	config["data"] = Json::object();
 
 	connectionWarning = false;
+
+
+	{
+		static const char version_str[] = {
+			'0'+TATTLE_VERSION_MAJOR, '.',
+			'0'+TATTLE_VERSION_MINOR, '.',
+			'0'+TATTLE_VERSION_PATCH, '\0'
+		};
+
+		Report::Parameter param;
+		param.type = PARAM_STRING;
+		param.preQuery = true;
+		param.name = "tattle";
+		param.json = {{"value", version_str}};
+		params.push_back(std::move(param));
+	}
 }
 
 void Report::_parse_urls() const
