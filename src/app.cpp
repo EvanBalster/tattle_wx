@@ -290,49 +290,54 @@ public:
 				// Argument string
 				wxString name, value;
 				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
+				if (!name.length() || name[0] == '$') {err = CMD_ERR_BAD_PAIR; break;}
 
 				//Parameter must not exist.
-				if (report_.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
-
-				Report::Parameter param;
-				param.type = PARAM_STRING;
-				param.name = name;
+				if (report_.config["data"].contains(name)) { err = CMD_ERR_PARAM_REDECLARED; break; }
 
 				switch (c1)
 				{
-				case 0: break;
-				case int('q'): param.preQuery = true; break;
+				case 0:
+					report_.config["data"][std::string(name)] = value;
+					break;
+				case int('q'):
+					report_.config["data"]["$query"][std::string(name)] = value;
+					break;
 				default:
 					err = CMD_ERR_UNKNOWN;
 					break;
 				}
 				if (err) break;
-
-				param.json =
-				{
-					{"value", value}
-				};
-				report_.params.push_back(std::move(param));
 			}
 			break;
 
 		case int('f'):
 			{
 // Argument string
-				wxString name, value;
-				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
+				wxString name, file_path;
+				if (!ParsePair(arg.GetStrVal(), name, file_path)) { err = CMD_ERR_BAD_PAIR; break; }
+				if (!name.length() || name[0] == '$') {err = CMD_ERR_BAD_PAIR; break;}
 
 				//Parameter must not exist.
-				if (report_.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
-					
-				Report::Parameter param;
-				if      (c1 == 't') {param.type = PARAM_FILE_TEXT;}
-				else if (c1 == 'b') {param.type = PARAM_FILE_BIN; }
-				else                {err = CMD_ERR_UNKNOWN; break;}
+				if (report_.config["data"].contains(name)) { err = CMD_ERR_PARAM_REDECLARED; break; }
 
-				std::string content_info;
+				std::string content_type;
+				std::string content_transfer_encoding;
+				switch (c1)
+				{
+				case int('t'):
+					content_type = "text/plain";
+					break;
+				case int('b'):
+					content_type = "application/octet-stream";
+					//content_transfer_encoding = "Base64";
+					break;
+				default:
+					err = CMD_ERR_UNKNOWN;
+					break;
+				}
 
-				if (!wxFile::Access(value, wxFile::read))
+				if (!wxFile::Access(file_path, wxFile::read))
 				{
 					// Fail gentry.
 					err = CMD_ERR_FAILED_TO_OPEN_FILE;
@@ -340,36 +345,21 @@ public:
 				else
 				{
 					// Probe the file...
-					wxFile file(value);
-					if (file.IsOpened())
-					{
-						if (param.type == PARAM_FILE_TEXT)
-						{
-							// Content info
-							content_info = "Content-Type: text/plain";
-						}
-						else
-						{
-							// Content info
-							content_info = "Content-Type: application/octet-stream"
-								"\r\n"
-								"Content-Transfer-Encoding: Base64";
-						}
-					}
-					else err = CMD_ERR_FAILED_TO_OPEN_FILE;
+					wxFile file(file_path);
+					if (!file.IsOpened()) err = CMD_ERR_FAILED_TO_OPEN_FILE;
+					file.Close();
 				}
 
 				if (err == CMD_ERR_NONE)
 				{
-					param.json =
+					Json &param = report_.config["data"][std::string(name)];
+					param =
 					{
-						{"path", value},
-						{"content_info", content_info}
+						{"path", file_path},
+						{"content-type", content_type}
 					};
-
-					param.name = name;
-
-					report_.params.push_back(std::move(param));
+					if (content_transfer_encoding.length())
+						param["content-transfer-encoding"] = content_transfer_encoding;
 				}
 			}
 			break;
@@ -384,7 +374,7 @@ public:
 				Report::Parameter *param = report_.findParam(name);
 				if (param == NULL)
 					{ err = CMD_ERR_PARAM_MISSING; break; }
-				if (param->type != PARAM_FILE_BIN && param->type != PARAM_FILE_TEXT)
+				if (param->type != PARAM_FILE)
 					{ err = CMD_ERR_PARAM_NOT_APPLICABLE; break; }
 
 				if (!param->json.contains("truncate")
@@ -789,13 +779,13 @@ public:
 	void PerformPost();
 
 private:
-RUN_STAGE stage;
+	RUN_STAGE stage;
 
-wxWindow* pendingWindow, * disposeWindow;
-Prompt* prompt;
+	wxWindow* pendingWindow, * disposeWindow;
+	Prompt* prompt;
 
-bool idleHandler;
-bool anyWindows;
+	bool idleHandler;
+	bool anyWindows;
 };
 
 bool TattleApp::OnInit()
@@ -835,7 +825,7 @@ bool TattleApp::OnInit()
 		return false;
 	}
 
-	report_.readFiles();
+	report_.compile();
 
 	// Debug
 	cout << "Successful init." << endl

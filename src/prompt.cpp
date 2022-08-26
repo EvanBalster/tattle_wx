@@ -341,7 +341,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	
 	wxTextCtrl *firstField = NULL;
 
-	for (Report::Parameters::iterator i = report.params.begin(); i != report.params.end(); ++i)
+	for (Report::Parameters::const_iterator i = report.params().begin(); i != report.params().end(); ++i)
 		switch (i->type)
 	{
 	case PARAM_FIELD:

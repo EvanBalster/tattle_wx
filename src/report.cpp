@@ -20,29 +20,23 @@ using namespace tattle;
 
 Report::Report()
 {
+	static const char tattle_version_str[] = {
+		'0'+TATTLE_VERSION_MAJOR, '.',
+		'0'+TATTLE_VERSION_MINOR, '.',
+		'0'+TATTLE_VERSION_PATCH, '\0'
+	};
+
 	config = Json::object();
 	config["url"]  = Json::object();
 	config["path"] = Json::object();
 	config["gui"]  = Json::object();
-	config["data"] = Json::object();
+
+	// Ensure query area is created...
+	config["data"] = {
+		{"$query", {{"tattle", tattle_version_str}}}
+	};
 
 	connectionWarning = false;
-
-
-	{
-		static const char version_str[] = {
-			'0'+TATTLE_VERSION_MAJOR, '.',
-			'0'+TATTLE_VERSION_MINOR, '.',
-			'0'+TATTLE_VERSION_PATCH, '\0'
-		};
-
-		Report::Parameter param;
-		param.type = PARAM_STRING;
-		param.preQuery = true;
-		param.name = "tattle";
-		param.json = {{"value", version_str}};
-		params.push_back(std::move(param));
-	}
 }
 
 void Report::_parse_urls() const
@@ -72,13 +66,13 @@ const Report::ParsedURL& Report::url_query() const
 
 Report::Parameter *Report::findParam(const wxString &name)
 {
-	for (Parameters::iterator i = params.begin(); i != params.end(); ++i) if (i->name == name) return &*i;
+	for (auto &param : _params) if (param.name == name) return &param;
 	return NULL;
 }
 
 const Report::Parameter *Report::findParam(const wxString &name) const
 {
-	for (Parameters::const_iterator i = params.begin(); i != params.end(); ++i) if (i->name == name) return &*i;
+	for (auto &param : _params) if (param.name == name) return &param;
 	return NULL;
 }
 
@@ -110,11 +104,63 @@ static void DumpBuffer(wxMemoryBuffer &dest, const wxMemoryBuffer &src)
 	dest.AppendData(src.GetData(), src.GetDataLen());
 }
 
-void Report::readFiles()
+void Report::compile()
 {
-	for (Parameters::iterator i = params.begin(); i != params.end(); ++i)
+	auto &j_data = config["data"];
+
+	auto process_params = [](Parameters &params, Json& j_params, bool preQuery)
 	{
-		if (i->type == PARAM_FILE_TEXT || i->type == PARAM_FILE_BIN)
+		for (auto i = j_params.begin(); i != j_params.end(); ++i)
+		{
+			if (!i.key().length()) continue;
+
+			if (i.key()[0] == '$') continue; // Metadata, skip it!
+
+			Parameter param;
+			param.preQuery = preQuery;
+			param.name = i.key();
+
+			if (i.value().is_string())
+			{
+				param.json = {{"value", i.value()}};
+				param.type = PARAM_STRING;
+			}
+			else if (i.value().is_object())
+			{
+				param.json = std::move(i.value());
+
+				auto path = JsonMember(i.value(), "path", "");
+				auto input = JsonMember(i.value(), "input", "");
+				if (path.length())
+				{
+					param.type = PARAM_FILE;
+				}
+				else if (input.length())
+				{
+					param.type = PARAM_FIELD;
+					if (input == "multiline") param.type = PARAM_FIELD_MULTI;
+				}
+			}
+			else
+			{
+				// TODO: this should be an error.
+				param.type = PARAM_STRING;
+			}
+			params.push_back(std::move(param));
+		}
+	};
+
+	// Pre-query data
+	if (config["data"].contains("$query"))
+		process_params(_params, config["data"]["$query"], true);
+
+	// General data
+	process_params(_params, config["data"], false);
+
+
+	for (Parameters::iterator i = _params.begin(); i != _params.end(); ++i)
+	{
+		if (i->type == PARAM_FILE)
 		{
 			if (!wxFile::Access(i->path(), wxFile::read))
 			{
@@ -181,9 +227,9 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 	// Boundary beginning with two hyphen-minus characters
 	wxString boundary_divider = "\r\n--" + boundary_id + "\r\n";
 	
-	for (Parameters::const_iterator i = params.begin(); true; ++i)
+	for (Parameters::const_iterator i = _params.begin(); true; ++i)
 	{
-		if (preQuery && i != params.end())
+		if (preQuery && i != _params.end())
 		{
 			// Only send strings marked for pre-querying
 			if (!i->preQuery || i->type != PARAM_STRING) continue;
@@ -193,7 +239,7 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 		DumpString(postBuffer, boundary_divider);
 	
 		// Not the last item, is it?
-		if (i == params.end()) break;
+		if (i == _params.end()) break;
 	
 		// Content disposition and name
 		DumpString(postBuffer, "Content-Disposition: form-data; name=\"");
@@ -209,9 +255,16 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 		DumpString(postBuffer, "\r\n");
 		
 		// Additional content type info
-		if (i->content_info().length())
+		if (i->content_type().length())
 		{
-			DumpString(postBuffer, i->content_info());
+			DumpString(postBuffer, "Content-Type: ");
+			DumpString(postBuffer, i->content_type());
+			DumpString(postBuffer, "\r\n");
+		}
+		if (i->content_transfer_encoding().length())
+		{
+			DumpString(postBuffer, "Content-Transfer-Encoding: ");
+			DumpString(postBuffer, i->content_transfer_encoding());
 			DumpString(postBuffer, "\r\n");
 		}
 		
@@ -227,8 +280,7 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 			DumpString(postBuffer, i->value());
 			break;
 		
-		case PARAM_FILE_TEXT:
-		case PARAM_FILE_BIN:
+		case PARAM_FILE:
 			DumpBuffer(postBuffer, i->fileContents);
 			break;
 		case PARAM_NONE:
@@ -254,7 +306,7 @@ wxString Report::preQueryString() const
 {
 	wxString query;
 	
-	for (Parameters::const_iterator i = params.begin(); i != params.end(); ++i)
+	for (Parameters::const_iterator i = _params.begin(); i != _params.end(); ++i)
 	{
 		if (i->preQuery)
 		{

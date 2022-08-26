@@ -95,9 +95,8 @@ namespace tattle
 	enum PARAM_TYPE
 	{
 		PARAM_NONE = 0,
-		PARAM_STRING,      // String provided in configuration
-		PARAM_FILE_BIN,    // Data file referenced by configuration
-		PARAM_FILE_TEXT,   // Text file referenced by configuration
+		PARAM_STRING, // String provided in configuration
+		PARAM_FILE,   // Text file referenced by configuration
 		PARAM_FIELD,       // Text field
 		PARAM_FIELD_MULTI, // Multi-line text field.
 	};
@@ -158,7 +157,8 @@ namespace tattle
 			std::string label      () const    {return JsonMember(json, "label", "");}
 			std::string placeholder() const    {return JsonMember(json, "placeholder", "");}
 
-			std::string content_info() const    {return JsonMember(json, "content_info", "");}
+			std::string content_type             () const    {return JsonMember(json, "content-type", "application/octet-stream");}
+			std::string content_transfer_encoding() const    {return JsonMember(json, "content-transfer-encoding", "");}
 
 			unsigned    truncate_begin() const    {return JsonFetch(json, "/truncate/0", 0u);}
 			unsigned    truncate_end  () const    {return JsonFetch(json, "/truncate/1", 0u);}
@@ -245,12 +245,20 @@ namespace tattle
 		
 	public:
 		Report();
+
+		/*
+			Once the report is fully configured, call this function.
+				- Generates parameters from JSON
+				- Reads files into memory, trimmed
+		*/
+		void compile();
 	
+		/*
+			Access report parameters.
+		*/
+		Parameters      &params()                        noexcept    {return _params;}
 		Parameter       *findParam(const wxString &name);
 		const Parameter *findParam(const wxString &name) const;
-		
-		// Read file contents into fileContents buffers
-		void readFiles();
 		
 		
 		// Query the server using the query address.
@@ -275,8 +283,6 @@ namespace tattle
 
 		Json config;
 
-		Parameters params;
-
 		Identifier identity() const
 		{
 			return Identifier(
@@ -296,6 +302,8 @@ namespace tattle
 		bool connectionWarning;
 
 	private:
+		Parameters _params;
+
 		mutable struct
 		{
 			bool parsed = false;

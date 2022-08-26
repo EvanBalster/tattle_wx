@@ -23,6 +23,7 @@ Step-by-step:
 3. Query _(`-uq` enables)_
   * Fire HTTP GET request, with `-aq` parameters encoded as multipart POST data.
   * If the server responds with text or a link, this is displayed to the user.
+  * If the server provides a `<tattle-id>` tag, the user gets a "don't show this again" option.
   * _The server may specify that execution should stop here.  (Not yet implemented!)_
   * This step happens only if the `-uq` flag is passed.
 4. Prompt + Consent to Post _(`-s` bypasses)_
