@@ -1,0 +1,76 @@
+{
+    "$schema" : "https://interactopia.com/tattle/schema-v1/command.json",
+
+    "url" :
+    {
+        "prefix" : "https://interactopia.com/mothership/",
+        "query" : "error_query.php",
+        "post" : "error_post.php"
+    },
+
+    "path" : {
+        "state" : ".",
+        "review" : ".",
+        "log" : false
+    },
+
+    "gui" : {
+        "icon" : "error",
+        "stay_on_top" : true,
+        "progress_bar" : true,
+
+        "query" : "default",
+        "post" : "default",
+
+        "prompt" : {
+            "icon" : "error",
+    
+            "title" : "Error Report",
+            "message" : "The app crashed!  Tell us what happened and we'll investigate.",
+            "technical" : "This is some technical information in a scrollable box.",
+
+            "label_prompt" : "Send to the developers?",
+    
+            "input_order" : [
+                "user-desc",
+                "user-email"
+            ],
+
+            "review" : true
+        }
+    },
+
+    "report" : {
+        "$type" : "error",
+        "$id" : "FAKERS",
+
+        "$query" : {
+            "app-error-hash" : "FAKERS",
+            "app-version" : "0.9.0b"
+        },
+
+        "app-time-local" : "NOW",
+
+        "app-log" : {
+            "path" : "log.txt",
+            "content-type" : "text/plain",
+            "truncate" : [1024, 1024, "(trimmed)"]
+        },
+        "app-error" : {
+            "path" : "log.txt",
+            "content-type" : "text/plain",
+            "truncate" : [1024, 1024]
+        },
+        "user-desc" : {
+            "input" : "multiline",
+            "label" : "Use this space to tell us what happened:"
+        },
+        "user-email" : {
+            "input" : "text",
+            "persist" : true,
+            "label" : "Your E-mail:",
+            "placeholder" : "you@example.com (optional)",
+            "input_warning" : "With no E-mail address, we won't be able to contact you about this report."
+        }
+    }
+}

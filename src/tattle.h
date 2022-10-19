@@ -138,19 +138,26 @@ namespace tattle
         /*
 			Represents a report parameter.
 		*/
-        struct Parameter
+        struct Content
         {
-            Parameter();
+			Content();
             
             PARAM_TYPE  type;
             std::string name;
 			bool        preQuery;  // Include in pre-query ?
+			Json        json;      // Original JSON from configuration
 
-			Json        json;
+
+			mutable std::string user_input;
+
+			std::string value() const
+			{
+				if (user_input.length()) return user_input;
+				if (json.is_string()) return json;
+				return JsonMember(json, "value", "");
+			}
 
 			std::string path()  const    {return JsonMember(json, "path", "");}
-
-			std::string value() const    {if (json.is_string()) return json; else return JsonMember(json, "value", "");}
 
 			bool        persist    () const    {return JsonMember(json, "persist", false);}
 
@@ -170,7 +177,7 @@ namespace tattle
 			wxMemoryBuffer fileContents;
         };
         
-        using Parameters = std::list<Parameter>;
+        using Contents = std::list<Content>;
 		
 		/*
 			Represents a parsed HTTP URL.
@@ -186,7 +193,8 @@ namespace tattle
 			ParsedURL() {port=80;}
 			
 			// Set to a URL.  Only host, path and port will be used.
-			bool set(wxString fullURL);
+			bool set(std::string fullURL);
+			bool set(wxString    fullURL);
 			
 			bool isSet() const    {return host.Length() != 0;}
 
@@ -256,9 +264,10 @@ namespace tattle
 		/*
 			Access report parameters.
 		*/
-		Parameters      &params()                        noexcept    {return _params;}
-		Parameter       *findParam(const wxString &name);
-		const Parameter *findParam(const wxString &name) const;
+		const Contents &contents()              const noexcept    {return _contents;}
+		//Contents       &contents()                    noexcept    {return _contents;}
+		Content        *findContent(const wxString &name);
+		const Content  *findContent(const wxString &name) const;
 		
 		
 		// Query the server using the query address.
@@ -286,8 +295,8 @@ namespace tattle
 		Identifier identity() const
 		{
 			return Identifier(
-				JsonFetch(config, "/data/$type", ""),
-				JsonFetch(config, "/data/$id",   ""));
+				JsonFetch(config, "/report/$type", ""),
+				JsonFetch(config, "/report/$id",   ""));
 		}
 
 		const ParsedURL& url_post()  const;
@@ -302,7 +311,7 @@ namespace tattle
 		bool connectionWarning;
 
 	private:
-		Parameters _params;
+		Contents _contents;
 
 		mutable struct
 		{
@@ -314,21 +323,25 @@ namespace tattle
 		void _parse_urls() const;
     };
 
+	/*
+	*	An interface to GUI configuration values.
+	*/
 	struct UIConfig
 	{
 		UIConfig(Json &config);
 
 		Json& config;
 
-		std::string promptTitle    () const    {return JsonFetch(config, "/gui/title", "Report");}
-		std::string promptMessage  () const    {return JsonFetch(config, "/gui/message", "Use this form to send us a report.");}
-		std::string promptTechnical() const    {return JsonFetch(config, "/gui/technical", "");}
-		std::string labelSend      () const    {return JsonFetch(config, "/gui/label_send", "");}
-		std::string labelCancel    () const    {return JsonFetch(config, "/gui/label_cancel", "");}
-		std::string labelReview    () const    {return JsonFetch(config, "/gui/label_review", "");}
+		std::string promptTitle    () const    {return JsonFetch(config, "/gui/prompt/title", "Report");}
+		std::string promptMessage  () const    {return JsonFetch(config, "/gui/prompt/message", "Use this form to send us a report.");}
+		std::string promptTechnical() const    {return JsonFetch(config, "/gui/prompt/technical", "");}
+		std::string labelPrompt    () const    {return JsonFetch(config, "/gui/prompt/label_prompt", "");}
+		std::string labelSend      () const    {return JsonFetch(config, "/gui/prompt/label_send", "");}
+		std::string labelCancel    () const    {return JsonFetch(config, "/gui/prompt/label_cancel", "");}
+		std::string labelReview    () const    {return JsonFetch(config, "/gui/prompt/label_review", "");}
 
 		bool stayOnTop   () const    {return JsonFetch(config, "/gui/stay_on_top", false);}
-		bool enableReview() const    {return JsonFetch(config, "/gui/review", false);}
+		bool enableReview() const    {return JsonFetch(config, "/gui/prompt/review", false);}
 		bool showProgress() const    {return JsonFetch(config, "/gui/progress_bar", false);}
 		bool silentQuery () const    {return JsonFetch(config, "/gui/query", "default") == "silent";}
 		bool silentPost  () const    {return JsonFetch(config, "/gui/post",  "default") == "silent";}
@@ -405,8 +418,8 @@ namespace tattle
     private:
         struct Field
         {
-            Report::Parameter *param;
-            wxTextCtrl        *control;
+            const Report::Content *content;
+            wxTextCtrl            *control;
         };
         typedef std::vector<Field> Fields;
         

@@ -42,9 +42,9 @@ void Prompt::OnSubmit(wxCommandEvent & event)
 
 	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
 	{
-		if (i->param->input_warning().length() && !i->control->GetValue().length())
+		if (i->content->input_warning().length() && !i->control->GetValue().length())
 		{
-			input_warnings += i->param->input_warning();
+			input_warnings += i->content->input_warning();
 			input_warnings += "\n";
 		}
 	}
@@ -97,12 +97,12 @@ void Prompt::UpdateReportFromFields()
 
 	for (Fields::iterator i = fields.begin(); i != fields.end(); ++i)
 	{
-		if (i->param->persist())
+		if (i->content->persist())
 		{
-			persistInputs[i->param->name] = i->control->GetValue();
+			persistInputs[i->content->name] = i->control->GetValue();
 		}
 
-		i->param->value() = i->control->GetValue();
+		i->content->user_input = i->control->GetValue();
 	}
 
 	if (dontShowAgainBox && dontShowAgainBox->GetValue())
@@ -341,7 +341,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 	
 	wxTextCtrl *firstField = NULL;
 
-	for (Report::Parameters::const_iterator i = report.params().begin(); i != report.params().end(); ++i)
+	for (Report::Contents::const_iterator i = report.contents().begin(); i != report.contents().end(); ++i)
 		switch (i->type)
 	{
 	case PARAM_FIELD:
@@ -424,7 +424,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 			wxStaticText *actionsLabel = new wxStaticText(this, -1, uiConfig.promptMessage(),
 				wxDefaultPosition, wxDefaultSize, wxLEFT);
 
-			ApplyMarkup(actionsLabel, "Send to imitone HQ?");
+			ApplyMarkup(actionsLabel, uiConfig.labelPrompt());
 			actionRow->Add(actionsLabel, 1, wxALIGN_CENTER | wxALL, MARGIN);
 		}
 

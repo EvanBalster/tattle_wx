@@ -73,15 +73,15 @@ wxWebRequest::State run_request_with_timeout(
 		bytes_recv = 0, bytes_to_recv = 0;
 
 	// Await the completion of the request...
-	for (unsigned i = 1; i <= 2*timeout_seconds+1; ++i)
+	for (long idle_time = 1; idle_time <= 2*timeout_seconds+1; ++idle_time)
 	{
-		if (i > timeout_seconds)
+		if (idle_time > timeout_seconds)
 		{
 			result = wxWebRequest::State_Cancelled; // in case of bad behavior
 			request.Cancel();
 		}
 
-		if (future_state.wait_until(time_started + std::chrono::seconds(i))
+		if (future_state.wait_until(time_started + std::chrono::seconds(idle_time))
 			!= std::future_status::timeout)
 			return future_state.get();
 
@@ -93,7 +93,7 @@ wxWebRequest::State run_request_with_timeout(
 		case wxWebRequest::State_Failed: 
 		case wxWebRequest::State_Cancelled:
 			result = requestState;
-			i = 3*timeout_seconds; // break the outer loop
+			idle_time = 3*timeout_seconds; // break the outer loop
 			break;
 		}
 
@@ -107,7 +107,7 @@ wxWebRequest::State run_request_with_timeout(
 		if (send_ct != bytes_sent || recv_ct != bytes_recv)
 		{
 			time_started = std::chrono::steady_clock::now();
-			i = 1;
+			idle_time = 1;
 		}
 
 		// diagnostics / progress bar
@@ -132,6 +132,11 @@ wxWebRequest::State run_request_with_timeout(
 }
 
 
+
+bool Report::ParsedURL::set(std::string url)
+{
+	return set(wxString::FromUTF8(url.data(), url.length()));
+}
 
 bool Report::ParsedURL::set(wxString url)
 {

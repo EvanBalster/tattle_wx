@@ -40,20 +40,20 @@ ViewReport::~ViewReport()
 	--ViewReportCount;
 }
 
-static void ParamDump(wxString &dump, const Report::Parameter *param)
+static void ContentDump(wxString &dump, const Report::Content *content)
 {
 	// Special handling for fields with newlines
-	if (param->value().length() > 35 || param->value().find_first_of("\r\n") != wxString::npos)
+	if (content->value().length() > 35 || content->value().find_first_of("\r\n") != wxString::npos)
 	{
-		wxString valueIndent = param->value();
+		wxString valueIndent = content->value();
 		valueIndent.Replace(wxString("\n"), wxString("\n| "));
-		dump += param->name + wxT(":\n| ") + valueIndent;
+		dump += content->name + wxT(":\n| ") + valueIndent;
 	}
 	else
 	{
-		wxString label = param->name+wxT(": ");
+		wxString label = content->name+wxT(": ");
 		if (label.length() < 20) label.Append(' ', size_t(20-label.length()));
-		dump += label + param->value();
+		dump += label + content->value();
 	}
 }
 
@@ -83,7 +83,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		bool first = true;
 		
 		if (preQueryNote)
-			for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
+			for (auto i = report.contents().begin(); i != report.contents().end(); ++i)
 		{
 			if (i->type != PARAM_STRING) continue;
 			
@@ -104,7 +104,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 			else argDump += wxT("\n");
 			
 			// Dump normal arguments
-			ParamDump(argDump, &*i);
+			ContentDump(argDump, &*i);
 		}
 		
 		if (first) preQueryNote = false;
@@ -129,7 +129,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		
 		first = true;
 		
-		for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
+		for (auto i = report.contents().begin(); i != report.contents().end(); ++i)
 		{
 			if (i->type != PARAM_STRING) continue;
 			
@@ -150,7 +150,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 			else argDump += wxT("\n");
 			
 			// Dump normal arguments
-			ParamDump(argDump, &*i);
+			ContentDump(argDump, &*i);
 		}
 		
 		if (!first)
@@ -176,9 +176,9 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 		wxFlexGridSizer *sizerFiles = NULL;
 	#endif
 		
-		for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
+		for (auto i = report.contents().begin(); i != report.contents().end(); ++i)
 		{
-			if (i->type != PARAM_FILE_TEXT && i->type != PARAM_FILE_BIN) continue;
+			if (i->type != PARAM_FILE) continue;
 			
 			wxString shortName = i->path();
 			{
@@ -252,9 +252,8 @@ void ViewReport::OnOpenFile(wxCommandEvent & event)
 	
 	if (window)
 	{
-		const Report::Parameter *param = report.findParam(window->GetName());
-		
-		if (param) wxLaunchDefaultApplication(param->path());
+		if (auto *content = report.findContent(window->GetName()))
+			wxLaunchDefaultApplication(content->path());
 	}
 }
 

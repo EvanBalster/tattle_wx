@@ -5,6 +5,8 @@
 //  Created by Evan Balster on 11/12/16.
 //
 
+#include <fstream> // Debug
+
 #include "tattle.h"
 
 #include <wx/app.h>
@@ -20,6 +22,7 @@
 #define CMD_OPTION_STRINGS(SHORT, LONG, DESC)    { wxCMD_LINE_OPTION, SHORT, LONG, DESC, wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_MULTIPLE }, 
 #define CMD_REQUIRE_STRING(SHORT, LONG, DESC)    { wxCMD_LINE_OPTION, SHORT, LONG, DESC, wxCMD_LINE_VAL_STRING, wxCMD_LINE_OPTION_MANDATORY },
 #define CMD_OPTION_INT(SHORT, LONG, DESC)        { wxCMD_LINE_OPTION, SHORT, LONG, DESC, wxCMD_LINE_VAL_NUMBER },
+#define CMD_PARAMETERS(SHORT, LONG, DESC)        { wxCMD_LINE_PARAM,  SHORT, LONG, DESC, wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_MULTIPLE},
 
 namespace tattle
 {
@@ -76,6 +79,8 @@ namespace tattle
 		//CMD_OPTION_STRINGS("tf", "tech-file",     "<label>:<fname>      Technical info as a linked file.")
 		CMD_SWITCH        ("v" , "view-data",     "               Enable 'view data' dialog.")
 		CMD_OPTION_STRINGS("vd", "view-dir",      "<path>         Folder listed in 'view data' dialog.")
+
+		CMD_PARAMETERS(nullptr, nullptr, "JSON Configuration File.")
 
 		{wxCMD_LINE_NONE}
 	};
@@ -138,9 +143,9 @@ public:
 		CMD_ERR_NONE = 0,
 		CMD_ERR_UNKNOWN,
 		CMD_ERR_BAD_PAIR,
-		CMD_ERR_PARAM_REDECLARED,
-		CMD_ERR_PARAM_MISSING,
-		CMD_ERR_PARAM_NOT_APPLICABLE,
+		CMD_ERR_CONTENT_REDECLARED,
+		CMD_ERR_CONTENT_MISSING,
+		CMD_ERR_CONTENT_NOT_APPLICABLE,
 		CMD_ERR_FAILED_TO_OPEN_CONFIG,
 		CMD_ERR_FAILED_TO_OPEN_FILE,
 		CMD_ERR_BAD_URL,
@@ -165,7 +170,7 @@ public:
 		CMD_LINE_ERR err = CMD_ERR_NONE;
 
 
-		auto &rpJson = report_.config;
+		auto &config = report_.config;
 		auto &uiJson = uiConfig_.config;
 		
 		//cout << ">>>>" << argName << " " << arg.GetStrVal() << endl;;
@@ -174,7 +179,7 @@ public:
 		{
 		case int('l'):
 			if (c1 == 0)
-				report_.config["path"]["log"] = arg.GetStrVal();
+				config["path"]["log"] = arg.GetStrVal();
 			else
 				err = CMD_ERR_UNKNOWN;
 			break;
@@ -186,13 +191,13 @@ public:
 				*/
 				if (c1 == 'p')
 				{
-					report_.config["url"]["post"] = std::string(arg.GetStrVal());
-					if (!report_.url_post().isSet()) err = CMD_ERR_BAD_URL;
+					config["url"]["post"] = std::string(arg.GetStrVal());
+					//if (!url_post().isSet()) err = CMD_ERR_BAD_URL;
 				}
 				else if (c1 == 'q')
 				{
-					report_.config["url"]["query"] = std::string(arg.GetStrVal());
-					if (!report_.url_query().isSet()) err = CMD_ERR_BAD_URL;
+					config["url"]["query"] = std::string(arg.GetStrVal());
+					//if (!url_query().isSet()) err = CMD_ERR_BAD_URL;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
@@ -224,7 +229,7 @@ public:
 					{
 						uiJson["gui"]["icon"] = arg.GetStrVal();
 						wxArtID id = uiConfig.GetIconID(arg.GetStrVal());
-						if (!id.length()) err = CMD_ERR_PARAM_NOT_APPLICABLE;
+						if (!id.length()) err = CMD_ERR_CONTENT_NOT_APPLICABLE;
 					}
 					break;
 				default:
@@ -270,8 +275,8 @@ public:
 					{
 						Report::Identifier id(std::string(arg.GetStrVal()));
 
-						report_.config.merge_patch(
-						{{"data", {
+						config.merge_patch(
+						{{"report", {
 							{"$type", id.type},
 							{"$id",   id.id}
 						} }});
@@ -292,16 +297,16 @@ public:
 				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 				if (!name.length() || name[0] == '$') {err = CMD_ERR_BAD_PAIR; break;}
 
-				//Parameter must not exist.
-				if (report_.config["data"].contains(name)) { err = CMD_ERR_PARAM_REDECLARED; break; }
+				//Content must not exist.
+				if (config["report"].contains(name)) { err = CMD_ERR_CONTENT_REDECLARED; break; }
 
 				switch (c1)
 				{
 				case 0:
-					report_.config["data"][std::string(name)] = value;
+					config["report"][std::string(name)] = value;
 					break;
 				case int('q'):
-					report_.config["data"]["$query"][std::string(name)] = value;
+					config["report"]["$query"][std::string(name)] = value;
 					break;
 				default:
 					err = CMD_ERR_UNKNOWN;
@@ -318,8 +323,8 @@ public:
 				if (!ParsePair(arg.GetStrVal(), name, file_path)) { err = CMD_ERR_BAD_PAIR; break; }
 				if (!name.length() || name[0] == '$') {err = CMD_ERR_BAD_PAIR; break;}
 
-				//Parameter must not exist.
-				if (report_.config["data"].contains(name)) { err = CMD_ERR_PARAM_REDECLARED; break; }
+				//Content must not exist.
+				if (config["report"].contains(name)) { err = CMD_ERR_CONTENT_REDECLARED; break; }
 
 				std::string content_type;
 				std::string content_transfer_encoding;
@@ -352,14 +357,14 @@ public:
 
 				if (err == CMD_ERR_NONE)
 				{
-					Json &param = report_.config["data"][std::string(name)];
-					param =
+					Json &content = config["report"][std::string(name)];
+					content =
 					{
 						{"path", file_path},
 						{"content-type", content_type}
 					};
 					if (content_transfer_encoding.length())
-						param["content-transfer-encoding"] = content_transfer_encoding;
+						content["content-transfer-encoding"] = content_transfer_encoding;
 				}
 			}
 			break;
@@ -370,17 +375,15 @@ public:
 				wxString name, value;
 				if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 				
-				//Parameter must exist and must be a file
-				Report::Parameter *param = report_.findParam(name);
-				if (param == NULL)
-					{ err = CMD_ERR_PARAM_MISSING; break; }
-				if (param->type != PARAM_FILE)
-					{ err = CMD_ERR_PARAM_NOT_APPLICABLE; break; }
+				//Content must exist and must be a file
+				Json &content = config["report"][std::string(name)];
+				if (!content.is_object())         { err = CMD_ERR_CONTENT_MISSING; break; }
+				if (!content.contains("path"))    { err = CMD_ERR_CONTENT_NOT_APPLICABLE; break; }
 
-				if (!param->json.contains("truncate")
-					|| !param->json["truncate"].is_array())
+				if (!content.contains("truncate")
+					|| !content["truncate"].is_array())
 				{
-					param->json["truncate"] = Json::array_t{0, 0, "(trimmed)"};
+					content["truncate"] = Json::array_t{0, 0, "(trimmed)"};
 				}
 				
 				if (c1 == 'b' || c1 == 'e')
@@ -388,13 +391,13 @@ public:
 					long bytes = 0;
 					if (value.ToLong(&bytes) && bytes >= 0)
 					{
-						param->json["truncate"][(c1 == 'b') ? 0 : 1] = unsigned(bytes);
+						content["truncate"][(c1 == 'b') ? 0 : 1] = unsigned(bytes);
 					}
 					else err = CMD_ERR_BAD_SIZE;
 				}
 				else if (c1 == 'n')
 				{
-					param->json["truncate"][2] = value;
+					content["truncate"][2] = value;
 				}
 				else err = CMD_ERR_UNKNOWN;
 			}
@@ -405,12 +408,12 @@ public:
 				//Prompt stuff
 				switch (c1)
 				{
-				case int('t'): uiJson["gui"]["title"] = arg.GetStrVal(); break;
-				case int('m'): uiJson["gui"]["message"] = arg.GetStrVal(); break;
-				case int('x'): uiJson["gui"]["technical"] = arg.GetStrVal(); break;
-				case int('s'): uiJson["gui"]["label_send"] = arg.GetStrVal(); break;
-				case int('c'): uiJson["gui"]["label_cancel"] = arg.GetStrVal(); break;
-				case int('v'): uiJson["gui"]["label_review"] = arg.GetStrVal(); break;
+				case int('t'): uiJson["gui"]["prompt"]["title"] = arg.GetStrVal(); break;
+				case int('m'): uiJson["gui"]["prompt"]["message"] = arg.GetStrVal(); break;
+				case int('x'): uiJson["gui"]["prompt"]["technical"] = arg.GetStrVal(); break;
+				case int('s'): uiJson["gui"]["prompt"]["label_send"] = arg.GetStrVal(); break;
+				case int('c'): uiJson["gui"]["prompt"]["label_cancel"] = arg.GetStrVal(); break;
+				case int('v'): uiJson["gui"]["prompt"]["label_review"] = arg.GetStrVal(); break;
 				default: err = CMD_ERR_UNKNOWN;
 				}
 				
@@ -424,53 +427,55 @@ public:
 					wxString name, label;
 					if (!ParsePair(arg.GetStrVal(), name, label)) { err = CMD_ERR_BAD_PAIR; break; }
 
-					//Parameter must not exist.
-					if (report_.findParam(name) != NULL) { err = CMD_ERR_PARAM_REDECLARED; break; }
+					//Content must not exist.
+					if (config["report"].contains(name)) { err = CMD_ERR_CONTENT_REDECLARED; break; }
 
-					Report::Parameter param;
-					param.name = name;
-					param.json =
+					const char *input_type = nullptr;
+					if     (c1 == '\0') input_type = "text";
+					else if (c1 == 'm') input_type = "multiline";
+					else {err = CMD_ERR_UNKNOWN; break;}
+
+					auto &content = config["report"][std::string(name)];
+					content =
 					{
+						{"input", input_type},
 						{"label", label}
 					};
-					if (c1 == '\0')     param.type = PARAM_FIELD;
-					else if (c1 == 'm') param.type = PARAM_FIELD_MULTI;
-					report_.params.push_back(std::move(param));
 				}
 				else if (c1 == 's')
 				{
 					wxString name = arg.GetStrVal();
 
-					// Value must exist
-					Report::Parameter *param = report_.findParam(name);
-					if (param == NULL) { err = CMD_ERR_PARAM_MISSING; break; }
+					//Content must exist and must be an input.
+					Json &content = config["report"][std::string(name)];
+					if (!content.is_object())         { err = CMD_ERR_CONTENT_MISSING; break; }
+					if (!content.contains("input"))   { err = CMD_ERR_CONTENT_NOT_APPLICABLE; break; }
 
-					param->json["persist"] = true;
+					content["persist"] = true;
 				}
 				else if (c1 == 'h' || c1 == 'd' || c1 == 'w')
 				{
 					wxString name, value;
 					if (!ParsePair(arg.GetStrVal(), name, value)) { err = CMD_ERR_BAD_PAIR; break; }
 
-					// Value must exist
-					Report::Parameter *param = report_.findParam(name);
-					if (param == NULL) { err = CMD_ERR_PARAM_MISSING; break; }
+					//Content must exist and must be an input.
+					Json &content = config["report"][std::string(name)];
+					if (!content.is_object())         { err = CMD_ERR_CONTENT_MISSING; break; }
+					if (!content.contains("input"))   { err = CMD_ERR_CONTENT_NOT_APPLICABLE; break; }
 
 					switch (c1)
 					{
 					case int('h'): //Add a hint.
-						if (param->type != PARAM_FIELD) err = CMD_ERR_PARAM_NOT_APPLICABLE;
-						param->json["placeholder"] = value;
+						if (content["input"] != "text") err = CMD_ERR_CONTENT_NOT_APPLICABLE;
+						content["placeholder"] = value;
 						break;
 
 					case int('d'): // Set default value.
-						if (param->type != PARAM_FIELD && param->type != PARAM_FIELD_MULTI) err = CMD_ERR_PARAM_NOT_APPLICABLE;
-						param->json["value"] = value;
+						content["value"] = value;
 						break;
 
 					case int('w'):
-						if (param->type != PARAM_FIELD && param->type != PARAM_FIELD_MULTI) err = CMD_ERR_PARAM_NOT_APPLICABLE;
-						param->json["input_warning"] = value;
+						content["input_warning"] = value;
 						break;
 
 					default: err = CMD_ERR_UNKNOWN;
@@ -487,12 +492,12 @@ public:
 			switch (c1)
 			{
 			case 0: // -v enables review
-				uiJson["gui"]["review"] = true;
+				uiJson["gui"]["prompt"]["review"] = true;
 				break;
 
 			case int('d'): // -vd: review directory
-				uiJson["gui"]["review"] = true;
-				rpJson["path"]["review"] = arg.GetStrVal();
+				uiJson["gui"]["prompt"]["review"] = true;
+				config["path"]["review"] = arg.GetStrVal();
 				break;
 
 			default:
@@ -531,16 +536,16 @@ public:
 				<< "' -- should be an unsigned integer." << endl;
 			success = false;
 			break;
-		case CMD_ERR_PARAM_REDECLARED:
-		case CMD_ERR_PARAM_MISSING:
-		case CMD_ERR_PARAM_NOT_APPLICABLE:
+		case CMD_ERR_CONTENT_REDECLARED:
+		case CMD_ERR_CONTENT_MISSING:
+		case CMD_ERR_CONTENT_NOT_APPLICABLE:
 			{
-				if (err == CMD_ERR_PARAM_REDECLARED)
-					cout << "Specified parameter more than once: `-" << argName << " ";
-				else if (err == CMD_ERR_PARAM_MISSING)
-					cout << "Field must be declared first: `-" << argName << " ";
-				else if (err == CMD_ERR_PARAM_NOT_APPLICABLE)
-					cout << "Property is not applicable to this field: `-" << argName << " ";
+				if (err == CMD_ERR_CONTENT_REDECLARED)
+					cout << "Specified content more than once: `-" << argName << " ";
+				else if (err == CMD_ERR_CONTENT_MISSING)
+					cout << "Content was not declared first: `-" << argName << " ";
+				else if (err == CMD_ERR_CONTENT_NOT_APPLICABLE)
+					cout << "Not applicable to this type of content: `-" << argName << " ";
 
 				cout << arg.GetStrVal() << "'" << endl;
 				//success = false;
@@ -570,7 +575,42 @@ public:
 
 		for (wxCmdLineArgs::const_iterator i = args.begin(); i != args.end(); ++i)
 		{
-			success &= ExecCmdLineArg(*i);
+			if (i->GetKind() == wxCMD_LINE_PARAM)
+			{
+				wxString path = i->GetStrVal();
+
+				if (!wxFile::Exists(path)) return false;
+
+				wxFile file(path);
+				if (!file.IsOpened()) return false;
+
+				try
+				{
+					Json json;
+
+					wxString contents_str;
+					file.ReadAll(&contents_str);
+					file.Close();
+
+					const auto text = contents_str.ToUTF8();
+
+					report_.config.merge_patch(
+						Json::parse(text.data(), text.data() + text.length(),
+							nullptr, true, true));
+				}
+				catch (Json::parse_error& e)
+				{
+					std::cout << "Failed to read configuration `" << path << "' : " << e.what() << std::endl;
+				}
+				catch (...)
+				{
+					std::cout << "Failed to read configuration `" << path << "' : unknown exception" << std::endl;
+				}
+			}
+			else
+			{
+				success &= ExecCmdLineArg(*i);
+			}
 		}
 
 		return success;
@@ -807,15 +847,19 @@ bool TattleApp::OnInit()
 
 	bool badCmdLine = false;
 
+	// DEBUG: dump the config to CWD
+	{
+		wxFile file("tattle_debug_dump.json", wxFile::OpenMode::write);
+		if (!file.IsOpened()) return false;
+
+		file.Write(report.config.dump(1, '\t', false, nlohmann::detail::error_handler_t::replace));
+
+		file.Close();
+	}
+
 	if (!report.url_post().isSet() && !report.url_query().isSet())
 	{
 		cout << "At least one URL must be set with the --url-* options." << endl;
-		badCmdLine = true;
-	}
-
-	if (!report.params.size())
-	{
-		cout << "At least one argument (string/file/field) must be specified." << endl;
 		badCmdLine = true;
 	}
 
@@ -827,11 +871,17 @@ bool TattleApp::OnInit()
 
 	report_.compile();
 
+	if (report.contents().size() == 0)
+	{
+		cout << "The report is empty.  Supply at least one piece of content (string, input or file)." << endl;
+		badCmdLine = true;
+	}
+
 	// Debug
 	cout << "Successful init." << endl
 		<< "  URL (post): " << report.url_post().full()
-		<< "  Parameters:" << endl;
-	for (Report::Parameters::const_iterator i = report.params.begin(); i != report.params.end(); ++i)
+		<< "  Contents:" << endl;
+	for (Report::Contents::const_iterator i = report.contents().begin(); i != report.contents().end(); ++i)
 		cout << "    - " << i->name << "= `" << i->value() << "' Type#" << i->type << endl;
 
 	Proceed();
