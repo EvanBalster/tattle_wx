@@ -295,18 +295,18 @@ namespace tattle
 		Identifier identity() const
 		{
 			return Identifier(
-				JsonFetch(config, "/report/$type", ""),
-				JsonFetch(config, "/report/$id",   ""));
+				JsonFetch(config, "/report/type", ""),
+				JsonFetch(config, "/report/id",   ""));
 		}
 
 		const ParsedURL& url_post()  const;
 		const ParsedURL& url_query() const;
 
-		bool enable_server_values() const    {return JsonFetch(config, "/config/server_values", true);}
+		bool enable_server_values() const    {return JsonFetch(config, "/service/cookies", true);}
 
-		std::string path_reviewData() const    {return JsonFetch(config, "/paths/review", "");}
-		std::string path_tattleData() const    {return JsonFetch(config, "/paths/state", "");}
-		std::string path_tattleLog()  const    {return JsonFetch(config, "/paths/log", "");}
+		std::string path_reviewData() const    {return JsonFetch(config, "/path/review", "");}
+		std::string path_tattleData() const    {return JsonFetch(config, "/path/state", "");}
+		std::string path_tattleLog()  const    {return JsonFetch(config, "/path/log", "");}
 		
 		bool connectionWarning;
 
@@ -332,13 +332,14 @@ namespace tattle
 
 		Json& config;
 
-		std::string promptTitle    () const    {return JsonFetch(config, "/gui/prompt/title", "Report");}
-		std::string promptMessage  () const    {return JsonFetch(config, "/gui/prompt/message", "Use this form to send us a report.");}
-		std::string promptTechnical() const    {return JsonFetch(config, "/gui/prompt/technical", "");}
-		std::string labelPrompt    () const    {return JsonFetch(config, "/gui/prompt/label_prompt", "");}
-		std::string labelSend      () const    {return JsonFetch(config, "/gui/prompt/label_send", "");}
-		std::string labelCancel    () const    {return JsonFetch(config, "/gui/prompt/label_cancel", "");}
-		std::string labelReview    () const    {return JsonFetch(config, "/gui/prompt/label_review", "");}
+		std::string promptTitle     () const    {return JsonFetch(config, "/text/prompt/title", "Report");}
+		std::string promptMessage   () const    {return JsonFetch(config, "/text/prompt/message", "Use this form to send us a report.");}
+		std::string promptTechnical () const    {return JsonFetch(config, "/report/summary", "");}
+		std::string labelPrompt     () const    {return JsonFetch(config, "/text/prompt/hint", "");}
+		std::string labelSend       () const    {return JsonFetch(config, "/text/prompt/btn_send", "");}
+		std::string labelCancel     () const    {return JsonFetch(config, "/text/prompt/btn_cancel", "");}
+		std::string labelReview     () const    {return JsonFetch(config, "/text/prompt/btn_review", "");}
+		std::string labelHaltReports() const    {return JsonFetch(config, "/text/halt_reports", "Don't show again");}
 
 		bool stayOnTop   () const    {return JsonFetch(config, "/gui/stay_on_top", false);}
 		bool enableReview() const    {return JsonFetch(config, "/gui/prompt/review", false);}

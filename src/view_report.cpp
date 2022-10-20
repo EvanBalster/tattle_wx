@@ -137,9 +137,14 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 			
 			if (first)
 			{
-				wxString queryLabel =
-					wxT("The full report below is only sent if you choose `")
-					+ uiConfig.labelSend() + wxT("':");
+				wxString queryLabel = wxT("The full report below is only sent if you choose");
+				if (uiConfig.labelSend().length())
+				{
+					queryLabel.append(wxT(" `"));
+					queryLabel.append(uiConfig.labelSend());
+					queryLabel.append(wxT("'"));
+				}
+				queryLabel.append(wxT(":"));
 					
 				sizerTop->Add(
 					new wxStaticText(this, -1, queryLabel),
@@ -204,6 +209,7 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 
 			wxButton *button = new wxButton(this, wxID_FILE, shortName,
 				wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, i->name);
+			button->SetBitmap(wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_BUTTON));
 			
 			sizerFiles->Add(button, 0, wxALL | wxALIGN_CENTER, MARGIN);
 		}
@@ -215,14 +221,15 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 	{
 		wxBoxSizer *actionRow = new wxBoxSizer(wxHORIZONTAL);
 		
-		wxButton *butDone = new wxButton(this, wxID_OK);
-		actionRow->Add(butDone, 0, wxALL, MARGIN);
-		
 		if (report.path_reviewData().length())
 		{
-			wxButton *butDir = new wxButton(this, wxID_VIEW_DETAILS, "Data Folder");
+			wxButton *butDir = new wxButton(this, wxID_OPEN);
+			butDir->SetBitmap(wxArtProvider::GetBitmap(wxART_FOLDER, wxART_BUTTON));
 			actionRow->Add(butDir, 0, wxALL, MARGIN);
 		}
+
+		wxButton *butDone = new wxButton(this, wxID_OK);
+		actionRow->Add(butDone, 0, wxALL, MARGIN);
 		
 		butDone->SetDefault();
 		

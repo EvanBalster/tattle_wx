@@ -1,6 +1,6 @@
-# Tattle/wx
+# Tattle, a Consentful Tool for Phoning Home
 
-Tattle is an interactive utility for applications that need to exchange reports and guidance with a server.  It is designed for error reporting, software update notifications, user feedback and data collection.  This process is interactive and designed to respect users' right to privacy and consent to data sharing.
+Tattle is an interactive utility for applications that need to report to a server or fetch guidance for the user.  It is designed for error reporting, software update notifications, user feedback and data collection.  This process is interactive and designed to respect users' right to privacy and consent to data sharing.
 
 
 ## Workflow
@@ -10,13 +10,13 @@ Tattle is generally invoked by another application, which provides it with a con
 Step-by-step:
 
 1. **Invocation**
-  * Tattle is invoked with a JSON command file configuring the GUI, upload behaviors and attached data.
+  * Tattle is invoked with a [JSON command file](test/config.json) configuring the GUI, upload behaviors and attached data.
   * Attached files are truncated and read into memory immediately, in case they would subsequently change.
 2. ❌ Planned: Consent to Query *(subject to privacy settings)*
    * ❌ Ask the user for consent to send basic information to the server.
    * This prompt is only shown to the user once per category.
 3. **Query** _(if no query URL is supplied, this step is skipped)_
-  * Fire HTTP GET request, with `-aq` parameters encoded as multipart POST data.
+  * This is an HTTPS POST request, with a small subset of the report's data.
   * If the server responds with text or a link, this is displayed to the user.
   * If the server provides a `<tattle-id>` tag, the user gets a "don't show this again" option.
   * _The server may specify that execution should stop here.  (Not yet implemented!)_
@@ -62,7 +62,8 @@ Things I may investigate in the future:
 * Allow Tattle to act as a child window of the parent application.
 * Language files for localizing the UI
 * GZIP-compressed uploading.
+* Folder attachments.
 * A way to save compiled reports to disk.
-* Possibly some built in "automatic" parameters.
+* Built-in / automatic parameters.
   * System description
   * Report time (local/GMT)

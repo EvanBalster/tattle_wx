@@ -281,12 +281,14 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 
 		if (report.identity())
 		{
-			dontShowAgainBox = new wxCheckBox(this, -1, "Don't show again");
+			dontShowAgainBox = new wxCheckBox(this, -1, uiConfig.labelHaltReports());
 		}
 
 		if (uiConfig.enableReview())
 		{
 			reviewButton = new wxButton(this, Ev_Details, uiConfig.labelReview());
+
+			reviewButton->SetBitmap(wxArtProvider::GetBitmap(wxART_REPORT_VIEW, wxART_BUTTON));
 		}
 
 		if (uiConfig.promptTechnical().length())
@@ -419,6 +421,9 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		
 		butSubmit = new wxButton(this, Ev_Submit, uiConfig.labelSend());
 		butCancel = new wxButton(this, Ev_Cancel, uiConfig.labelCancel());
+
+		butSubmit->SetBitmap(wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_BUTTON));
+		butCancel->SetBitmap(wxArtProvider::GetBitmap(wxART_DELETE, wxART_BUTTON));
 
 		{
 			wxStaticText *actionsLabel = new wxStaticText(this, -1, uiConfig.promptMessage(),

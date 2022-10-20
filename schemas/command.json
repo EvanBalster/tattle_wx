@@ -1,0 +1,228 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+
+    "title" : "Tattle Command File",
+    "description" : "Configures Tattle, a tool for interactive reports from applications.",
+
+    "$defs" : {
+        "record" : {
+            "type" : "object",
+            "additionalProperties" : false
+        },
+
+        "title" : {"type" : "string"},
+        "label" : {"type" : "string"},
+
+        "dialog_icon" : {
+            "type" : "string",
+            "enum" : ["information", "info", "warning", "error", "question", "help", "tip"]
+        },
+
+        "consent_mode" : {
+            "type" : "string",
+            "enum" : ["default", "silent"],
+            "default" : "default"
+        },
+
+        "file_truncation" : {
+            "type" : "array",
+            "prefixItems" : [
+                {"type" : "integer", "minimum" : 0, "default" : 0},
+                {"type" : "integer", "minimum" : 0, "default" : 0},
+                {"type" : "string", "default" : "(trimmed)"}
+            ],
+            "items" : false
+        },
+
+        "timeout" : {"type" : "integer", "minimum" : 1},
+
+        "report_string" : {
+            "oneOf" : [
+                {
+                    "$comment" : "simple string value.",
+                    "type" : "string"
+                },
+                {
+                    "$comment" : "string value.",
+                    "type" : "object",
+                    "properties" : {
+                        "value" : {"type" : "string"}
+                    },
+                    "required" : ["value"],
+                    "additionalProperties" : false
+                }
+            ]
+        },
+
+        "report_file" : {
+            "$comment" : "attached file.",
+            "type" : "object",
+            "properties" : {
+                "path"         : {"type" : "string"},
+                "content-type" : {"type" : "string", "default" : "application/octet-stream"},
+                "truncate"     : {"$ref" : "#/$defs/file_truncation", "default" : [0, 0, "(trimmed)"]}
+            },
+            "required" : ["path"],
+            "additionalProperties" : false
+        },
+
+        "report_input" : {
+            "$comment" : "user input value",
+            "type" : "object",
+            "properties" : {
+                "input" : {
+                    "type" : "string",
+                    "enum" : ["text", "multiline"]
+                },
+                "label" : {"$ref" : "#/$defs/label"},
+                "value"         : {"type" : "string", "default" : ""},
+                "placeholder"   : {"type" : "string", "default" : ""},
+                "input_warning" : {"type" : "string", "default" : ""},
+                "persist"       : {"type" : "boolean", "default" : false}
+            },
+            "required" : ["input", "label"],
+            "additionalProperties" : false
+        },
+
+        "report_content" : {
+            "oneOf" : [
+                {"$ref" : "#/$defs/report_string"},
+                {"$ref" : "#/$defs/report_file"},
+                {"$ref" : "#/$defs/report_input"}
+            ]
+        }
+
+    },
+
+    "type" : "object",
+    "additionalProperties" : false,
+    "properties" : {
+
+        "$schema" : {"type" : "string"},
+
+        "$DEBUG_DUMP" : {"type" : "string", "$comment" : "Dumb coalesced JSON configuration to a file."},
+
+        
+        "service" : {
+            "$comment" : "Web service configuration.",
+
+            "type" : "object",
+            "additionalProperties" : false,
+
+            "properties" : {
+
+                "url" : {
+                    "type" : "object",
+                    "additionalProperties" : false,
+                    "properties" : {
+                        "prefix" : {"type" : "string", "default" : ""},
+                        "query" : {"type" : "string"},
+                        "post"  : {"type" : "string"}
+                    },
+                    "anyOf" : [
+                        {"required" : ["post"]},
+                        {"required" : ["query"]}
+                    ]
+                },
+
+                "cookies" : {"type" : "boolean", "default" : "false"}
+            }
+            
+        },
+        
+
+        "path" : {
+            "type" : "object",
+            "additionalProperties" : false,
+            "properties" : {
+                "state"  : {"type" : "string"},
+                "review" : {"type" : "string"},
+                "log"    : {"type" : "string"}
+            }
+        },
+
+        "text" : {
+            "$comment" : "Localized text for a report.",
+
+            "type" : "object",
+            "additionalProperties" : false,
+
+            "properties" : {
+                "halt_reports" : {"$ref" : "#/$defs/label"},
+                "prompt" : {
+                    "type" : "object",
+                    "additionalProperties" : false,
+                    "properties" : {
+                        "title"     : {"$ref" : "#/$defs/title", "default" : "Report"},
+                        "message"   : {"type" : "string", "default" : "Use this form to send us a report."},
+
+                        "hint"       : {"$ref" : "#/$defs/label"},
+                        "btn_send"   : {"$ref" : "#/$defs/label"},
+                        "btn_cancel" : {"$ref" : "#/$defs/label"},
+                        "btn_review" : {"$ref" : "#/$defs/label"}
+                    }
+                }
+            }
+        },
+
+        "gui" : {
+            "type" : "object",
+            "additionalProperties" : false,
+            "properties" : {
+
+                "icon"         : {"$ref" : "#/$defs/dialog_icon"},
+                "stay_on_top"  : {"type" : "boolean", "default" : false},
+                "progress_bar" : {"type" : "boolean", "default" : false},
+                "query"        : {"$ref" : "#/$defs/consent_mode"},
+                "post"         : {"$ref" : "#/$defs/consent_mode"},
+
+                "margin_small"  : {"type" : "integer", "minimum" : 0, "default" : 5},
+                "margin_medium" : {"type" : "integer", "minimum" : 0, "default" : 8},
+                "margin_large"  : {"type" : "integer", "minimum" : 0, "default" : 10},
+
+                "prompt" : {
+                    "type" : "object",
+                    "additionalProperties" : false,
+        
+                    "properties" : {
+                        "icon"      : {"$ref" : "#/$defs/dialog_icon"},
+                        "review"    : {"type" : "boolean", "default" : false},
+
+                        "input_order" : {
+                            "$comment" : "Order of editable data fields.",
+
+                            "type" : "array",
+                            "items" : {"type" : "string"}
+                        }
+                    }
+                }
+            }
+        },
+
+        "report" : {
+            "type" : "object",
+
+            "properties" : {
+
+                "type" : {"type":"string", "default" : ""},
+                "id"   : {"type":"string", "default" : ""},
+
+                "summary" : {"type" : "string", "default" : "", "$comment" : "Technical summary of the report."},
+
+                "query" : {
+                    "$comment" : "This schema prohibits attaching files to queries.",
+
+                    "type" : "object",
+                    "additionalProperties" : {"type" : "string"}
+                },
+
+                "contents" : {
+                    "type" : "object",
+                    "additionalProperties" : {"$ref" : "#/$defs/report_content"}
+                }
+            },
+
+            "additionalProperties": false
+        }
+    }
+}

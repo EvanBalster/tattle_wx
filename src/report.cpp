@@ -27,14 +27,16 @@ Report::Report()
 	};
 
 	config = Json::object();
-	config["url"]  = Json::object();
+	config["service"]  = Json::object();
+	config["service"]["url"] = Json::object();
 	config["path"] = Json::object();
 	config["gui"]  = Json::object();
 	config["gui"]["prompt"] = Json::object();
 
 	// Ensure query area is created...
 	config["report"] = {
-		{"$query", {{"tattle", tattle_version_str}}}
+		{"query", {{"tattle", tattle_version_str}}},
+		{"contents", Json::object()}
 	};
 
 	connectionWarning = false;
@@ -42,12 +44,12 @@ Report::Report()
 
 void Report::_parse_urls() const
 {
-	if (config.contains("url"))
+	if (config["service"].contains("url"))
 	{
-		auto& urls = config["url"];
+		auto& urls = config["service"]["url"];
 		url_cache.post .set(urls.value("prefix", "") + urls.value("post",  ""));
 		url_cache.query.set(urls.value("prefix", "") + urls.value("query", ""));
-		url_cache.parsed = true;
+		url_cache.parsed = true; // TODO make this a proper one-time operation.
 	}
 }
 
@@ -107,8 +109,6 @@ static void DumpBuffer(wxMemoryBuffer &dest, const wxMemoryBuffer &src)
 
 void Report::compile()
 {
-	auto &j_data = config["report"];
-
 	auto process_contents = [](Contents &contents, Json& j_contents, bool preQuery)
 	{
 		for (auto i = j_contents.begin(); i != j_contents.end(); ++i)
@@ -156,11 +156,12 @@ void Report::compile()
 	};
 
 	// Pre-query data
-	if (config["report"].contains("$query"))
-		process_contents(_contents, config["report"]["$query"], true);
+	if (config["report"].contains("query"))
+		process_contents(_contents, config["report"]["query"], true);
 
 	// General data
-	process_contents(_contents, config["report"], false);
+	if (config["report"].contains("contents"))
+		process_contents(_contents, config["report"]["contents"], false);
 
 
 	for (Contents::iterator i = _contents.begin(); i != _contents.end(); ++i)

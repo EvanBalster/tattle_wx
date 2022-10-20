@@ -1,0 +1,45 @@
+{
+    "$schema" : "http://interactopia.com/tattle/schema/command-draft03.json",
+
+    "path" : {
+        "state" : ".",
+        "review" : "."
+    },
+
+    "gui" : {
+        "icon" : "error",
+        "stay_on_top" : true,
+        "progress_bar" : true,
+
+        "query" : "default",
+        "post" : "default"
+    },
+
+    "report" : {
+        "type" : "error",
+        "id" : "FAKERS",
+
+        "summary" : "This is some technical information in a scrollable box.",
+
+        "query" : {
+            "app-error-hash": "FAKERS",
+			"app-error-message": "fake error",
+            "app-version" : "0.9.0b"
+        },
+
+        "contents" : {
+            "app-time-local" : "NOW",
+
+            "app-log" : {
+                "path" : "log.txt",
+                "content-type" : "text/plain",
+                "truncate" : [1024, 1024, "(trimmed)"]
+            },
+            "error-dump" : {
+                "path" : "bigfile.dat",
+                "content-type" : "application/octet-stream",
+                "truncate" : [1024, 1024]
+            }
+        }
+    }
+}

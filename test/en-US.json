@@ -1,0 +1,17 @@
+{
+    "$schema" : "http://interactopia.com/tattle/schema/command-draft03.json",
+
+    "text" : {
+        "halt_reports" : "Don't show again",
+
+        "prompt" : {
+            "title" : "Error Report",
+            "message" : "The app crashed!  Tell us what happened and we'll investigate.",
+
+            "hint" : "Send to the developers?",
+            "btn_send" : "Send to project HQ",
+            "btn_cancel" : "",
+            "btn_review" : ""
+        }
+    }
+}

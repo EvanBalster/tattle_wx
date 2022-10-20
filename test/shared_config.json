@@ -1,0 +1,48 @@
+{
+    "$schema" : "http://interactopia.com/tattle/schema/command-draft02.json",
+
+    "service" : {
+        "url" : {
+            "prefix" : "https://interactopia.com/mothership/",
+            "query" : "error_query.php",
+            "post" : "error_post.php"
+        },
+        "cookies" : true
+    },
+
+    "path" : {
+    },
+
+    "gui" : {
+        "stay_on_top" : true,
+        "progress_bar" : true,
+
+        "query" : "default",
+        "post" : "default",
+
+        "prompt" : {
+            "input_order" : [
+                "user-desc",
+                "user-email"
+            ],
+
+            "review" : true
+        }
+    },
+
+    "report" : {
+        "contents" : {
+            "user-desc" : {
+                "input" : "multiline",
+                "label" : "Use this space to tell us what happened:"
+            },
+            "user-email" : {
+                "input" : "text",
+                "persist" : true,
+                "label" : "Your E-mail:",
+                "placeholder" : "you@example.com (optional)",
+                "input_warning" : "With no E-mail address, we won't be able to contact you about this report."
+            }
+        }
+    }
+}

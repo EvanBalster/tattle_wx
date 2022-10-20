@@ -88,7 +88,7 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message,
 
 			if (dontShowAgainID)
 			{
-				dontShowAgainBox = new wxCheckBox(this, -1, "Don't show again");
+				dontShowAgainBox = new wxCheckBox(this, -1, uiConfig.labelHaltReports());
 
 				textArea->Add(dontShowAgainBox, 0, wxALIGN_RIGHT | wxALL, uiConfig.marginMd());
 			}
@@ -123,6 +123,7 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message,
 
 
 			actionRow->Add(dfl = new wxButton(this, wxID_OPEN), 1, wxALL, uiConfig.marginSm());
+			dfl->SetBitmap(wxArtProvider::GetBitmap(wxART_HELP_PAGE, wxART_BUTTON));
 			actionRow->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, uiConfig.marginSm());
 		}
 		else
