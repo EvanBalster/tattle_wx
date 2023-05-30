@@ -209,7 +209,11 @@ ViewReport::ViewReport(wxWindow * parent, wxWindowID id)
 
 			wxButton *button = new wxButton(this, wxID_FILE, shortName,
 				wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, i->name);
-			button->SetBitmap(wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_BUTTON));
+
+			if (i->content_type() == "application/octet-stream")
+				button->SetBitmap(wxArtProvider::GetBitmap(wxART_NORMAL_FILE, wxART_BUTTON));
+			else
+				button->SetBitmap(wxArtProvider::GetBitmap(wxART_HELP_PAGE, wxART_BUTTON));
 			
 			sizerFiles->Add(button, 0, wxALL | wxALIGN_CENTER, MARGIN);
 		}
@@ -253,6 +257,14 @@ void ViewReport::OnClose(wxCloseEvent   & event)
 	Destroy();
 }
 
+static std::string OpenablePath(std::string path)
+{
+#if defined(_MSC_VER) || defined(WIN32)
+	for (auto &c : path) if (c=='/') c='\\';
+#endif
+	return path;
+}
+
 void ViewReport::OnOpenFile(wxCommandEvent & event)
 {
 	wxWindow *window = dynamic_cast<wxWindow*>(event.GetEventObject());
@@ -260,13 +272,13 @@ void ViewReport::OnOpenFile(wxCommandEvent & event)
 	if (window)
 	{
 		if (auto *content = report.findContent(window->GetName()))
-			wxLaunchDefaultApplication(content->path());
+			wxLaunchDefaultApplication(OpenablePath(content->path()));
 	}
 }
 
 void ViewReport::OnOpenDir(wxCommandEvent & event)
 {
-	wxLaunchDefaultApplication(report.path_reviewData());
+	wxLaunchDefaultApplication(OpenablePath(report.path_reviewData()));
 /*#if __WXMSW__
 	wxExecute( wxT("start \"")+report.viewPath+wxT("\""), wxEXEC_ASYNC, NULL );
 #else

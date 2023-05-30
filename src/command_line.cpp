@@ -1,4 +1,5 @@
 #include <fstream>
+#include <sstream>
 
 #include "tattle.h"
 
@@ -131,7 +132,7 @@ namespace tattle
 		switch (c0)
 		{
 		case int('D'):
-			config["$DEBUG_DUMP"] = std::string(arg.GetStrVal().ToUTF8());
+			config["path"]["config_dump"] = std::string(arg.GetStrVal().ToUTF8());
 			break;
 
 #if TATTLE_LEGACY_COMMAND_LINE
@@ -225,8 +226,7 @@ namespace tattle
 					break;
 
 				case int('s'):
-					if (!persist.load(arg.GetStrVal()))
-						err = CMD_ERR_FAILED_TO_OPEN_FILE;
+					config["path"]["state"] = std::string(arg.GetStrVal().ToUTF8());
 					break;
 
 				case int('t'):
@@ -565,11 +565,17 @@ namespace tattle
 				}
 				catch (Json::parse_error& e)
 				{
-					std::cout << "Failed to read configuration `" << path << "' : " << e.what() << std::endl;
+					std::stringstream ss;
+					ss << "Failed to read configuration `" << path << "' : " << e.what();
+					std::cout << ss.str() << std::endl;
+					wxMessageBox(ss.str(), "Problem while making a report");
 				}
 				catch (...)
 				{
-					std::cout << "Failed to read configuration `" << path << "' : unknown exception" << std::endl;
+					std::stringstream ss;
+					ss << "Failed to read configuration `" << path << "' : unknown exception";
+					std::cout << ss.str() << std::endl;
+					wxMessageBox(ss.str(), "Problem while making a report");
 				}
 			}
 			else

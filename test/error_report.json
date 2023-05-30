@@ -36,7 +36,7 @@
                 "content-type" : "text/plain",
                 "truncate" : [1024, 1024, "(trimmed)"]
             },
-            "error-dump" : {
+            "app-error-dump" : {
                 "path" : "bigfile.dat",
                 "content-type" : "application/octet-stream",
                 "truncate" : [1024, 1024]

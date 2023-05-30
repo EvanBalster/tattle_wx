@@ -5,11 +5,6 @@
     "description" : "Configures Tattle, a tool for interactive reports from applications.",
 
     "$defs" : {
-        "record" : {
-            "type" : "object",
-            "additionalProperties" : false
-        },
-
         "title" : {"type" : "string"},
         "label" : {"type" : "string"},
 

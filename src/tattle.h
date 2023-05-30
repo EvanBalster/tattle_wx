@@ -308,7 +308,7 @@ namespace tattle
 		std::string path_tattleData() const    {return JsonFetch(config, "/path/state", "");}
 		std::string path_tattleLog()  const    {return JsonFetch(config, "/path/log", "");}
 		
-		bool connectionWarning;
+		bool connectionWarning = false;
 
 	private:
 		Contents _contents;

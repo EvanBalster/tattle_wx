@@ -3,7 +3,8 @@
 
     "service" : {
         "url" : {
-            "prefix" : "https://interactopia.com/mothership/",
+			"prefix" : "https://imitone.com/mouthershoop09823/",
+            "prefix2" : "https://interactopia.com/mothership/",
             "query" : "error_query.php",
             "post" : "error_post.php"
         },
@@ -32,7 +33,7 @@
 
     "report" : {
         "contents" : {
-            "user-desc" : {
+            "report-body" : {
                 "input" : "multiline",
                 "label" : "Use this space to tell us what happened:"
             },

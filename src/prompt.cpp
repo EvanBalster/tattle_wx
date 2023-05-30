@@ -208,7 +208,7 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 			if (!msg.Length()) msg = "Your report was sent and accepted.";
 		}
 
-		if (reply.identity && persist.shouldShow(reply.identity))
+		if (!reply.identity || persist.shouldShow(reply.identity))
 		{
 			return new InfoDialog(parent, title, msg, reply.link, reply.command, reply.icon, reply.identity);
 		}
@@ -271,24 +271,27 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		if (uiConfig.promptTechnical().length() == 0)
 			sizerTop->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, MARGIN);
 	}
+
+	const bool layout_displayTechBox = (report.identity() || uiConfig.promptTechnical().length());
+
+	wxButton *reviewButton = nullptr;
+	if (uiConfig.enableReview())
+	{
+		reviewButton = new wxButton(this, Ev_Details, uiConfig.labelReview());
+
+		reviewButton->SetBitmap(wxArtProvider::GetBitmap(wxART_REPORT_VIEW, wxART_BUTTON));
+	}
 	
 	// Report contents and information
+	if (layout_displayTechBox)
 	{
 		// Data area
 		wxTextCtrl *techBox = nullptr;
 		dontShowAgainBox = nullptr;
-		wxButton *reviewButton = nullptr;
 
 		if (report.identity())
 		{
 			dontShowAgainBox = new wxCheckBox(this, -1, uiConfig.labelHaltReports());
-		}
-
-		if (uiConfig.enableReview())
-		{
-			reviewButton = new wxButton(this, Ev_Details, uiConfig.labelReview());
-
-			reviewButton->SetBitmap(wxArtProvider::GetBitmap(wxART_REPORT_VIEW, wxART_BUTTON));
 		}
 
 		if (uiConfig.promptTechnical().length())
@@ -423,7 +426,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		butCancel = new wxButton(this, Ev_Cancel, uiConfig.labelCancel());
 
 		butSubmit->SetBitmap(wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_BUTTON));
-		butCancel->SetBitmap(wxArtProvider::GetBitmap(wxART_CLOSE, wxART_BUTTON));
+		//butCancel->SetBitmap(wxArtProvider::GetBitmap(wxART_CLOSE, wxART_BUTTON));
 
 		{
 			wxStaticText *actionsLabel = new wxStaticText(this, -1, uiConfig.promptMessage(),
@@ -434,6 +437,12 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		}
 
 		actionRow->Add(butSubmit, 1, wxALL, MARGIN);
+
+		if (!layout_displayTechBox)
+		{
+			actionRow->Add(reviewButton, 0, wxALL, MARGIN);
+		}
+
 		actionRow->Add(butCancel, 0, wxALL, MARGIN);
 		
 		butSubmit->SetDefault();
