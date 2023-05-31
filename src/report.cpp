@@ -47,8 +47,10 @@ void Report::_parse_urls() const
 	if (config["service"].contains("url"))
 	{
 		auto& urls = config["service"]["url"];
-		url_cache.post .set(urls.value("prefix", "") + urls.value("post",  ""));
-		url_cache.query.set(urls.value("prefix", "") + urls.value("query", ""));
+		if (urls.contains("post"))
+			url_cache.post .set(urls.value("prefix", "") + urls.value("post",  ""));
+		if (urls.contains("query"))
+			url_cache.query.set(urls.value("prefix", "") + urls.value("query", ""));
 		url_cache.parsed = true; // TODO make this a proper one-time operation.
 	}
 }
@@ -231,7 +233,8 @@ void Report::compile()
 void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool preQuery) const
 {
 	// Boundary beginning with two hyphen-minus characters
-	wxString boundary_divider = "\r\n--" + boundary_id + "\r\n";
+	wxString boundary_divider       = "\r\n--" + boundary_id + "\r\n";
+	wxString boundary_divider_final = "\r\n--" + boundary_id + "--\r\n";
 	
 	for (Contents::const_iterator i = _contents.begin(); true; ++i)
 	{
@@ -241,11 +244,20 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 			if (!i->preQuery || i->type != PARAM_STRING) continue;
 		}
 	
-		// All items are preceded and succeeded by a boundary.
-		DumpString(postBuffer, boundary_divider);
+		
 	
 		// Not the last item, is it?
-		if (i == _contents.end()) break;
+		if (i == _contents.end())
+		{
+			// All items are preceded and succeeded by a boundary.
+			DumpString(postBuffer, boundary_divider_final);
+			break;
+		}
+		else
+		{
+			// All items are preceded and succeeded by a boundary.
+			DumpString(postBuffer, boundary_divider);
+		}
 	
 		// Content disposition and name
 		DumpString(postBuffer, "Content-Disposition: form-data; name=\"");
@@ -261,7 +273,7 @@ void Report::encodePost(wxMemoryBuffer &postBuffer, wxString boundary_id, bool p
 		DumpString(postBuffer, "\r\n");
 		
 		// Additional content type info
-		if (i->content_type().length())
+		if (i->path().length() && i->content_type().length())
 		{
 			DumpString(postBuffer, "Content-Type: ");
 			DumpString(postBuffer, i->content_type());

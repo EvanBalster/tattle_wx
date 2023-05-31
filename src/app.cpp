@@ -335,14 +335,19 @@ bool TattleApp::OnInit()
 	bool badCmdLine = false;
 
 	// DEBUG: dump the config to CWD
-	if (report.config.contains("$DEBUG_DUMP"))
+	if (report.config["path"].contains("config_dump"))
 	{
-		wxFile file(std::string(report.config["$DEBUG_DUMP"]), wxFile::OpenMode::write);
+		wxFile file(std::string(report.config["path"]["config_dump"]), wxFile::OpenMode::write);
 		if (!file.IsOpened()) return false;
 
 		file.Write(report.config.dump(1, '\t', false, nlohmann::detail::error_handler_t::replace));
 
 		file.Close();
+	}
+
+	if (report.config["path"].contains("state"))
+	{
+		bool loaded = persist.load(report.config["path"]["state"]);
 	}
 
 	if (!report.url_post().isSet() && !report.url_query().isSet())

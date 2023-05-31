@@ -1,0 +1,15 @@
+{
+    "tattle-response" : {
+        "icon" : "information",
+        "title" : "Solution Found",
+        "message" : "It looks like the program crashed because of a graphics driver issue.  Follow this link for a guide",
+        "link" : "/support/graphics_drivers.html",
+        "buttons" : {
+            "open" : {
+                "on_click" : "quit"
+            },
+            "forward" : true,
+            "ignore" : true
+        }
+    }
+}

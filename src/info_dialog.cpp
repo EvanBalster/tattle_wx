@@ -80,8 +80,7 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message,
 
 			if (tHeader)
 			{
-				tHeader->SetFont(wxFontInfo(12).AntiAliased()); //Family(wxFONTFAMILY_SWISS)
-				tHeader->SetForegroundColour(wxTheColourDatabase->Find("MEDIUM BLUE"));
+				tHeader->SetFont(wxFontInfo(12).AntiAliased());
 				textArea->Add(tHeader, 0, wxALIGN_LEFT | wxALL, uiConfig.marginMd());
 			}
 			textArea->Add(tContent, 0, wxALIGN_LEFT | wxALL, uiConfig.marginSm());
@@ -123,7 +122,7 @@ InfoDialog::InfoDialog(wxWindow *parent, wxString title, wxString message,
 
 
 			actionRow->Add(dfl = new wxButton(this, wxID_OPEN), 1, wxALL, uiConfig.marginSm());
-			dfl->SetBitmap(wxArtProvider::GetBitmap(wxART_HELP_PAGE, wxART_BUTTON));
+			//dfl->SetBitmap(wxArtProvider::GetBitmap(wxART_FILE_OPEN, wxART_BUTTON));
 			actionRow->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, uiConfig.marginSm());
 		}
 		else

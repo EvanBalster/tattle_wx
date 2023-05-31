@@ -5,11 +5,6 @@
     "description" : "Configures Tattle, a tool for interactive reports from applications.",
 
     "$defs" : {
-        "record" : {
-            "type" : "object",
-            "additionalProperties" : false
-        },
-
         "title" : {"type" : "string"},
         "label" : {"type" : "string"},
 
@@ -77,8 +72,8 @@
                 "label" : {"$ref" : "#/$defs/label"},
                 "value"         : {"type" : "string", "default" : ""},
                 "placeholder"   : {"type" : "string", "default" : ""},
-                "input_warning" : {"type" : "string", "default" : ""},
-                "persist"       : {"type" : "boolean", "default" : false}
+                "input_warning" : {"type" : "string", "default" : "", "$comment" : "Display a warning if this input is left blank."},
+                "persist"       : {"type" : "boolean", "default" : false, "$comment" : "Remember the user's input."}
             },
             "required" : ["input", "label"],
             "additionalProperties" : false

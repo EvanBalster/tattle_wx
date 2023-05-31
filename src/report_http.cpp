@@ -440,6 +440,7 @@ Report::Reply Report::httpPost(wxEvtHandler &parent) const
 	}
 	
 	// Ordering issue hack
+	//  TODO this causes the prompt window to "blink in" after posting
 	if (unhideWindow) unhideWindow->Show();
 	
 	return reply;
