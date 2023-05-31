@@ -303,7 +303,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 			techBox->SetFont(fontTechnical);
 
 			techBox->SetBackgroundStyle( wxBG_STYLE_COLOUR );
-			//techBox->SetBackgroundColour( *wxLIGHT_GREY );
+			techBox->SetBackgroundColour( *wxLIGHT_GREY );
 
 			//sizerTop->Add(techBox, 0, wxEXPAND | wxALL, MARGIN);
 		}
@@ -423,7 +423,7 @@ Prompt::Prompt(wxWindow * parent, wxWindowID id, Report &_report)
 		butCancel = new wxButton(this, Ev_Cancel, uiConfig.labelCancel());
 
 		butSubmit->SetBitmap(wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_BUTTON));
-		butCancel->SetBitmap(wxArtProvider::GetBitmap(wxART_CLOSE, wxART_BUTTON));
+		butCancel->SetBitmap(wxArtProvider::GetBitmap(wxART_DELETE, wxART_BUTTON));
 
 		{
 			wxStaticText *actionsLabel = new wxStaticText(this, -1, uiConfig.promptMessage(),

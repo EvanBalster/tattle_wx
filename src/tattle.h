@@ -68,8 +68,8 @@ namespace tattle
 		try {return json.value(key, std::forward<T>(defaultValue));}
 		catch (Json::type_error &) {return defaultValue;}
 	}
-	inline std::string JsonMember(const Json &json, const Json::object_t::key_type &key, const char *defaultValue)
-		{return JsonMember<std::string>(json, key, defaultValue);}
+	inline std::string JsonMember(const Json &json, const Json::object_t::key_type &key, const char *default)
+		{return JsonMember<std::string>(json, key, default);}
 
 	template<typename T>
 	T JsonFetch(const Json& json, const Json::json_pointer& ptr, const T &defaultValue)
