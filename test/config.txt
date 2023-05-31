@@ -3,10 +3,11 @@
 
 -aq "app-error-hash=FAKERS"
 -a  "app-time-local=NOW"
--aq "app-version=0.9.0b"
+-aq "app-version=0.12.0"
 
 -pt "Error Report"
 -pm "The app crashed!  Tell us what happened and we'll investigate."
+-px "Here is a more technical description for nerds."
 
 -ft app-log=log.txt
 -ft app-error=log.txt

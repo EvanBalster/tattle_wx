@@ -24,7 +24,7 @@
         "query" : {
             "app-error-hash": "FAKERS",
 			"app-error-message": "fake error",
-            "app-version" : "0.9.0b",
+            "app-version" : "0.12.0",
             "app-developer" : "tattle.git"
         },
 

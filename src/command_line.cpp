@@ -372,7 +372,7 @@ namespace tattle
 				{
 				case int('t'): config["text"]["prompt"]["title"] = arg.GetStrVal(); break;
 				case int('m'): config["text"]["prompt"]["message"] = arg.GetStrVal(); break;
-				case int('x'): config["gui"]["prompt"]["summary"] = arg.GetStrVal(); break;
+				case int('x'): config["report"]["summary"] = arg.GetStrVal(); break;
 				case int('s'): config["text"]["prompt"]["btn_send"] = arg.GetStrVal(); break;
 				case int('c'): config["text"]["prompt"]["btn_cancel"] = arg.GetStrVal(); break;
 				case int('v'): config["text"]["prompt"]["btn_review"] = arg.GetStrVal(); break;
