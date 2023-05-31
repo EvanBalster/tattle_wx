@@ -195,20 +195,27 @@ wxWindow *Prompt::DisplayReply(const Report::Reply &reply, wxWindow *parent)
 	{
 		wxString title = reply.title, msg = reply.message;
 		wxString link;
+
+		bool shouldDisplayInfoDialog = false;
 		
 		if (reply.sentLink())
 		{
 			if (!title.Length()) title = wxT("Suggested Link");
 			if (!msg.Length()) msg = wxT("The server replied with a link.");
 			link = reply.link;
+			shouldDisplayInfoDialog = true;
 		}
 		else
 		{
+			// Don't display info dialog on query if there is no message or link.
+			//  Always display it after the user filled out the posting form.
+			shouldDisplayInfoDialog = parent || (msg.Length() != 0);
+
 			if (!title.Length()) title = "Report Sent";
 			if (!msg.Length()) msg = "Your report was sent and accepted.";
 		}
 
-		if (!reply.identity || persist.shouldShow(reply.identity))
+		if (shouldDisplayInfoDialog && (!reply.identity || persist.shouldShow(reply.identity)))
 		{
 			return new InfoDialog(parent, title, msg, reply.link, reply.command, reply.icon, reply.identity);
 		}
