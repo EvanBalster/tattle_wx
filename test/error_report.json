@@ -2,7 +2,7 @@
     "$schema" : "http://interactopia.com/tattle/schema/command-draft03.json",
 
     "path" : {
-        "state" : ".",
+        "state" : "./tattle_data.json",
         "review" : "."
     },
 
