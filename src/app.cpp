@@ -337,7 +337,7 @@ bool TattleApp::OnInit()
 	// DEBUG: dump the config to CWD
 	if (report.config["path"].contains("config_dump"))
 	{
-		wxFile file(std::string(report.config["path"]["config_dump"]), wxFile::OpenMode::write);
+		wxFile file(wxString::FromUTF8(report.config["path"]["config_dump"]), wxFile::OpenMode::write);
 		if (!file.IsOpened()) return false;
 
 		file.Write(report.config.dump(1, '\t', false, nlohmann::detail::error_handler_t::replace));
@@ -347,7 +347,7 @@ bool TattleApp::OnInit()
 
 	if (report.config["path"].contains("state"))
 	{
-		bool loaded = persist.load(report.config["path"]["state"]);
+		bool loaded = persist.load(wxString::FromUTF8(report.config["path"]["state"]));
 	}
 
 	if (!report.url_post().isSet() && !report.url_query().isSet())
