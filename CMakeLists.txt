@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+include(CMakePackageConfigHelpers)
+
 if (MSVC)
     add_compile_options(/MP)
     add_compile_options("/Zc:__cplusplus")
@@ -43,7 +45,7 @@ endif (WIN32)
 target_link_libraries(tattle PRIVATE wx::core wx::base wx::net)
 target_link_libraries(tattle PUBLIC nlohmann_json::nlohmann_json)
 
-target_include_directories(tattle PUBLIC "thirdparty/include")
+target_include_directories(tattle PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/include")
 
 
 
@@ -57,7 +59,21 @@ set_target_properties(tattle PROPERTIES
 	XCODE_SCHEME_ARGUMENTS "shared_config.json en-US.json error_report.json")
 
 
-# Install tattle binary
+# Install tattle binary and utility script
+set_property(TARGET tattle PROPERTY EXPORT_NAME tattle)
+install(
+    TARGETS tattle
+    EXPORT tattle-targets)
+install(
+    EXPORT tattle-targets
+    DESTINATION lib/cmake/tattle
+	NAMESPACE "tattle::")
+configure_package_config_file(
+    tattle-config.cmake.in
+    tattle-config.cmake
+    INSTALL_DESTINATION lib/cmake/tattle)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/tattle-config.cmake DESTINATION lib/cmake/tattle)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/TattleUtil.cmake DESTINATION lib/cmake/tattle/util)
 install(TARGETS tattle DESTINATION bin)
 
 
