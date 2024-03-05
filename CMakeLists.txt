@@ -62,8 +62,10 @@ set_target_properties(tattle PROPERTIES
 # Install tattle binary and utility script
 set_property(TARGET tattle PROPERTY EXPORT_NAME tattle)
 install(
-    TARGETS tattle
-    EXPORT tattle-targets)
+	TARGETS tattle
+	EXPORT tattle-targets
+	RUNTIME DESTINATION bin
+	BUNDLE DESTINATION bin)
 install(
     EXPORT tattle-targets
     DESTINATION lib/cmake/tattle
@@ -74,7 +76,6 @@ configure_package_config_file(
     INSTALL_DESTINATION lib/cmake/tattle)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/tattle-config.cmake DESTINATION lib/cmake/tattle)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/TattleUtil.cmake DESTINATION lib/cmake/tattle/util)
-install(TARGETS tattle DESTINATION bin)
 
 
 # Solution name
