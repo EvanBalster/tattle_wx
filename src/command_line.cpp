@@ -138,7 +138,7 @@ namespace tattle
 #if TATTLE_LEGACY_COMMAND_LINE
 		case int('l'):
 			if (c1 == 0)
-				config["path"]["log"] = arg.GetStrVal();
+				config["path"]["log"] = std::string(arg.GetStrVal().ToUTF8());
 			else
 				err = CMD_ERR_UNKNOWN;
 			break;
@@ -461,7 +461,7 @@ namespace tattle
 
 			case int('d'): // -vd: review directory
 				config["gui"]["prompt"]["review"] = true;
-				config["path"]["review"] = arg.GetStrVal();
+				config["path"]["review"] = std::string(arg.GetStrVal().ToUTF8());
 				break;
 
 			default:
