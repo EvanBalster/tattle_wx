@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 
+# automatically detect manifest-mode vcpkg dependencies.
+if (WIN32)
+    list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-windows-static")
+endif()
+
+project(tattle)
+
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -21,10 +28,6 @@ enable_language(C)
 find_package (Threads)
 find_package(wxWidgets CONFIG REQUIRED) # Used for GUI and HTTPS
 find_package(nlohmann_json CONFIG REQUIRED) # Used for JSON parsing/writing
-
-
-# Library project
-project(tattle)
 
 
 file(GLOB TATTLE_HEADERS src/*.h)
