@@ -47,11 +47,11 @@ static void ContentDump(wxString &dump, const Report::Content *content)
 	{
 		wxString valueIndent = content->value();
 		valueIndent.Replace(wxString("\n"), wxString("\n| "));
-		dump += content->name + wxT(":\n| ") + valueIndent;
+		dump += wxString(content->name) + wxT(":\n| ") + valueIndent;
 	}
 	else
 	{
-		wxString label = content->name+wxT(": ");
+		wxString label = wxString(content->name)+wxT(": ");
 		if (label.length() < 20) label.Append(' ', size_t(20-label.length()));
 		dump += label + content->value();
 	}

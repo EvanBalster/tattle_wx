@@ -121,7 +121,7 @@ wxWebRequest::State run_request_with_timeout(
 			float pct
 				= (80.f*bytes_sent)/bytes_to_send
 				+ (20.f*bytes_recv)/bytes_to_recv;
-			progress->Update(std::floor(pct));
+			progress->Update(std::min(std::lround(pct), 100l));
 		}
 	}
 
